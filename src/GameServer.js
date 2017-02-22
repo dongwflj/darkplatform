@@ -263,7 +263,7 @@ GameServer.prototype.onClientSocketOpen = function(ws) {
     ws.remoteAddress = ws._socket.remoteAddress;
     ws.remotePort = ws._socket.remotePort;
     ws.lastAliveTime = Date.now();
-    Logger.write("Client CONNECTED:" + ws.remoteAddress + ":" + ws.remotePort + ", origin: \"" + ws.upgradeReq.headers.origin + "\"");
+    Logger.info("Client CONNECTED:" + ws.remoteAddress + ":" + ws.remotePort + ", origin: \"" + ws.upgradeReq.headers.origin + "\"");
     
     var PlayerCommand = require('./modules/PlayerCommand');
     ws.playerTracker = new PlayerTracker(this, ws);
@@ -293,7 +293,7 @@ GameServer.prototype.onClientSocketOpen = function(ws) {
         ws.sendPacket = function(data) { };
         ws.closeReason = { reason: ws._closeCode, message: ws._closeMessage };
         ws.closeTime = Date.now();
-        Logger.write("DISCONNECTED " + ws.remoteAddress + ":" + ws.remotePort + ", code: " + ws._closeCode + ", reason: \"" + ws._closeMessage + "\", name: \"" + ws.playerTracker._name + "\"");
+        Logger.info("DISCONNECTED " + ws.remoteAddress + ":" + ws.remotePort + ", code: " + ws._closeCode + ", reason: \"" + ws._closeMessage + "\", name: \"" + ws.playerTracker._name + "\"");
     };
     ws.on('message', onMessage);
     ws.on('error', onError);
@@ -896,7 +896,7 @@ GameServer.prototype.spawnPlayer = function(player, pos) {
         }
     }
     // Check if can spawn from ejected mass
-    var index = (this.nodesEjected.length - 1) * ~~Math.random();
+    /*var index = (this.nodesEjected.length - 1) * ~~Math.random();
     var eject = this.nodesEjected[index];
     if (this.nodesEjected.length && !eject.isRemoved && eject.boostDistance < 1 &&
         Math.random() <= this.config.ejectSpawnPercent) {
@@ -909,7 +909,7 @@ GameServer.prototype.spawnPlayer = function(player, pos) {
             y: eject.position.y
         };
         size = Math.max(eject._size, size);
-    }
+    }*/
     // 10 attempts to find safe position
     for (var i = 0; i < 10 && this.willCollide(pos, size); i++) {
         pos = this.randomPos();
@@ -1015,7 +1015,8 @@ GameServer.prototype.ejectMass = function(client) {
         
         // Remove mass from parent cell first
         var sizeLoss = this.config.ejectSizeLoss;
-        var sizeSquared = cell._sizeSquared - sizeLoss * sizeLoss;
+        ///var sizeSquared = cell._sizeSquared - sizeLoss * sizeLoss;
+        var sizeSquared = cell._sizeSquared - sizeLoss;
         cell.setSize(Math.sqrt(sizeSquared));
         
         // Get starting position
@@ -1026,8 +1027,8 @@ GameServer.prototype.ejectMass = function(client) {
         var angle = Math.atan2(dx, dy);
         if (isNaN(angle)) angle = Math.PI / 2;
         
-        // Randomize angle
-        angle += (Math.random() * 0.6) - 0.3;
+        // Randomize angle don't need this
+        /// angle += (Math.random() * 0.6) - 0.3;
         
         // Create cell
         if (!this.config.ejectVirus) {

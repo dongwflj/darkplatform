@@ -11,7 +11,7 @@ function Teams() {
     this.colorFuzziness = 32;
     
     // Special
-    this.teamAmount = 3; // Amount of teams. Having more than 3 teams will cause the leaderboard to work incorrectly (client issue).
+    this.teamAmount = 10; // Amount of teams. Having more than 3 teams will cause the leaderboard to work incorrectly (client issue).
     this.colors = [{
             'r': 223,
             'g': 0,
@@ -24,6 +24,34 @@ function Teams() {
             'r': 0,
             'g': 0,
             'b': 223
+        },{
+            'r': 0,
+            'g': 223,
+            'b': 100
+        },{
+            'r': 100,
+            'g': 223,
+            'b': 0
+        }, {
+            'r': 100,
+            'g': 223,
+            'b': 100
+        }, {
+            'r': 200,
+            'g': 223,
+            'b': 0
+        }, {
+            'r': 0,
+            'g': 223,
+            'b': 200
+        }, {
+            'r': 200,
+            'g': 223,
+            'b': 200
+        }, {
+            'r': 100,
+            'g': 223,
+            'b': 200
         },]; // Make sure you add extra colors here if you wish to increase the team amount [Default colors are: Red, Green, Blue]
     this.nodes = []; // Teams
 }

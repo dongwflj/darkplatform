@@ -1,9 +1,9 @@
 var Packet = require('./packet');
 var BinaryReader = require('./packet/BinaryReader');
-var Logger = require('./modules/Logger');
+var Logger = require('../modules/Logger');
 
-function PacketHandler(gameServer, socket) {
-    this.gameServer = gameServer;
+function PacketHandler(darkServer, socket) {
+    this.darkServer = darkServer;
     this.socket = socket;
     this.protocol = 0;
     this.handshakeProtocol = null;
@@ -27,16 +27,18 @@ module.exports = PacketHandler;
 
 PacketHandler.prototype.handleMessage = function (message) {
     if (!this.handler.hasOwnProperty(message[0])) {
+        Logger.error("Invalid message");
         return;
     }
     this.handler[message[0]](message);
-    this.socket.lastAliveTime = this.gameServer.stepDateTime;
+    this.socket.lastAliveTime = this.darkServer.stepDateTime;
 };
 
 PacketHandler.prototype.handshake_onProtocol = function (message) {
     if (message.length !== 5) return;
     this.handshakeProtocol = message[1] | (message[2] << 8) | (message[3] << 16) | (message[4] << 24);
     if (this.handshakeProtocol < 1 || this.handshakeProtocol > 11) {
+        Logger.error("Protocol version is invalide");
         this.socket.close(1002, "Not supported protocol");
         return;
     }
@@ -49,6 +51,7 @@ PacketHandler.prototype.handshake_onKey = function (message) {
     if (message.length !== 5) return;
     this.handshakeKey = message[1] | (message[2] << 8) | (message[3] << 16) | (message[4] << 24);
     if (this.handshakeProtocol > 6 && this.handshakeKey !== 0) {
+        Logger.error("Protocol is invalide");
         this.socket.close(1002, "Not supported protocol");
         return;
     }
@@ -73,23 +76,23 @@ PacketHandler.prototype.handshake_onCompleted = function (protocol, key) {
     this.protocol = protocol;
     // Send handshake response
     this.socket.sendPacket(new Packet.ClearAll());
-    this.socket.sendPacket(new Packet.SetBorder(this.socket.playerTracker, this.gameServer.border, this.gameServer.config.serverGamemode, "MultiOgar-Edited " + this.gameServer.version));
+    this.socket.sendPacket(new Packet.SetBorder(this.socket.playerTracker, this.darkServer.border, this.darkServer.config.serverGamemode, "Dark Server:" + this.darkServer.version));
     // Send welcome message
-    this.gameServer.sendChatMessage(null, this.socket.playerTracker, "MultiOgar-Edited " + this.gameServer.version);
-    if (this.gameServer.config.serverWelcome1)
-        this.gameServer.sendChatMessage(null, this.socket.playerTracker, this.gameServer.config.serverWelcome1);
-    if (this.gameServer.config.serverWelcome2)
-        this.gameServer.sendChatMessage(null, this.socket.playerTracker, this.gameServer.config.serverWelcome2);
-    if (this.gameServer.config.serverChat == 0)
-        this.gameServer.sendChatMessage(null, this.socket.playerTracker, "This server's chat is disabled.");
+    this.darkServer.sendChatMessage(null, this.socket.playerTracker, "Dark Server: " + this.darkServer.version);
+    if (this.darkServer.config.serverWelcome1)
+        this.darkServer.sendChatMessage(null, this.socket.playerTracker, this.darkServer.config.serverWelcome1);
+    if (this.darkServer.config.serverWelcome2)
+        this.darkServer.sendChatMessage(null, this.socket.playerTracker, this.darkServer.config.serverWelcome2);
+    if (this.darkServer.config.serverChat == 0)
+        this.darkServer.sendChatMessage(null, this.socket.playerTracker, "This server's chat is disabled.");
     if (this.protocol < 4)
-        this.gameServer.sendChatMessage(null, this.socket.playerTracker, "WARNING: Protocol " + this.protocol + " assumed as 4!");
+        this.darkServer.sendChatMessage(null, this.socket.playerTracker, "WARNING: Protocol " + this.protocol + " assumed as 4!");
 };
 
 
 PacketHandler.prototype.message_onJoin = function (message) {
     Logger.debug("Onjoin entry");
-    var tick = this.gameServer.tickCounter;
+    var tick = this.darkServer.tickCounter;
     var dt = tick - this.lastJoinTick;
     this.lastJoinTick = tick;
     if (dt < 25 || this.socket.playerTracker.cells.length !== 0) {
@@ -123,39 +126,34 @@ PacketHandler.prototype.message_onMouse = function (message) {
 };
 
 PacketHandler.prototype.message_onKeySpace = function (message) {
-    Logger.debug("OnKeySpace entry");
     if (this.socket.playerTracker.miQ) {
         this.socket.playerTracker.minionSplit = true;
     } else {
         this.pressSpace = true;
     }
-    Logger.debug("OnKeySpace exit");
 };
 
 PacketHandler.prototype.message_onKeyQ = function (message) {
-    Logger.debug("OnKeyQ entry");
     if (message.length !== 1) return;
-    var tick = this.gameServer.tickCoutner;
+    var tick = this.darkServer.tickCoutner;
     var dt = tick - this.lastQTick;
-    if (dt < this.gameServer.config.ejectCooldown) {
+    if (dt < this.darkServer.config.ejectCooldown) {
         return;
     }
     this.lastQTick = tick;
     if (this.socket.playerTracker.minionControl) {
-        if (!this.gameServer.config.disableQ) 
+        if (!this.darkServer.config.disableQ) 
             this.socket.playerTracker.miQ = !this.socket.playerTracker.miQ;
     } else {
         this.pressQ = true;
     }
-    Logger.debug("OnKeyQ exit");
 };
 
 PacketHandler.prototype.message_onKeyW = function (message) {
-    Logger.info("OnKeyW entry");
     if (message.length !== 1) return;
-    var tick = this.gameServer.tickCounter;
+    var tick = this.darkServer.tickCounter;
     var dt = tick - this.lastWTick;
-    if (dt < this.gameServer.config.ejectCooldown) {
+    if (dt < this.darkServer.config.ejectCooldown) {
         return;
     }
     this.lastWTick = tick;
@@ -164,43 +162,34 @@ PacketHandler.prototype.message_onKeyW = function (message) {
     } else {
         this.pressW = true;
     }
-    Logger.info("OnKeyW exit");
 };
 
 PacketHandler.prototype.message_onKeyE = function (message) {
-    Logger.debug("OnKeyE entry");
-    if (this.gameServer.config.disableERTP) return;
+    if (this.darkServer.config.disableERTP) return;
     this.socket.playerTracker.minionSplit = true;
-    Logger.debug("OnKeyE exit");
 };
 
 PacketHandler.prototype.message_onKeyR = function (message) {
-    Logger.debug("OnKeyR entry");
-    if (this.gameServer.config.disableERTP) return;
+    if (this.darkServer.config.disableERTP) return;
     this.socket.playerTracker.minionEject = true;
-    Logger.debug("OnKeyR exit");
 };
 
 PacketHandler.prototype.message_onKeyT = function (message) {
-    Logger.debug("OnKeyT entry");
-    if (this.gameServer.config.disableERTP) return;
+    if (this.darkServer.config.disableERTP) return;
     this.socket.playerTracker.minionFrozen = !this.socket.playerTracker.minionFrozen;
-    Logger.debug("OnKeyT exit");
 };
 
 PacketHandler.prototype.message_onKeyP = function (message) {
-    Logger.debug("OnKeyP entry");
-    if (this.gameServer.config.disableERTP) return;
-    if (this.gameServer.config.collectPellets) {
+    if (this.darkServer.config.disableERTP) return;
+    if (this.darkServer.config.collectPellets) {
         this.socket.playerTracker.collectPellets = !this.socket.playerTracker.collectPellets;
     }
-    Logger.debug("OnKeyP exit");
 };
 
 PacketHandler.prototype.message_onChat = function (message) {
     Logger.debug("OnChat entry");
     if (message.length < 3) return;
-    var tick = this.gameServer.tickCounter;
+    var tick = this.darkServer.tickCounter;
     var dt = tick - this.lastChatTick;
     this.lastChatTick = tick;
     if (dt < 25 * 2) {
@@ -219,13 +208,13 @@ PacketHandler.prototype.message_onChat = function (message) {
         text = reader.readStringZeroUnicode();
     else
         text = reader.readStringZeroUtf8();
-    this.gameServer.onChatMessage(this.socket.playerTracker, null, text);
+    this.darkServer.onChatMessage(this.socket.playerTracker, null, text);
     Logger.debug("OnChat exit");
 };
 
 PacketHandler.prototype.message_onStat = function (message) {
     if (message.length !== 1) return;
-    var tick = this.gameServer.tickCounter;
+    var tick = this.darkServer.tickCounter;
     var dt = tick - this.lastStatTick;
     this.lastStatTick = tick;
     if (dt < 25) {
@@ -235,33 +224,31 @@ PacketHandler.prototype.message_onStat = function (message) {
 };
 
 PacketHandler.prototype.processMouse = function () {
-    Logger.debug("processMouse entry");
     if (this.mouseData == null) return;
-    var client = this.socket.playerTracker;
+    var player = this.socket.playerTracker;
     var reader = new BinaryReader(this.mouseData);
     reader.skipBytes(1);
     if (this.mouseData.length === 13) {
         // protocol late 5, 6, 7
-        client.mouse.x = reader.readInt32() - client.scrambleX;
-        client.mouse.y = reader.readInt32() - client.scrambleY;
+        player.mouse.x = reader.readInt32() - player.scrambleX;
+        player.mouse.y = reader.readInt32() - player.scrambleY;
     } else if (this.mouseData.length === 9) {
         // early protocol 5
-        client.mouse.x = reader.readInt16() - client.scrambleX;
-        client.mouse.y = reader.readInt16() - client.scrambleY;
+        player.mouse.x = reader.readInt16() - player.scrambleX;
+        player.mouse.y = reader.readInt16() - player.scrambleY;
     } else if (this.mouseData.length === 21) {
         // protocol 4
-        var x = reader.readDouble() - client.scrambleX;
-        var y = reader.readDouble() - client.scrambleY;
+        var x = reader.readDouble() - player.scrambleX;
+        var y = reader.readDouble() - player.scrambleY;
         if (!isNaN(x) && !isNaN(y)) {
-            client.mouse.x = x;
-            client.mouse.y = y;
+            player.mouse.x = x;
+            player.mouse.y = y;
         }
     }
     this.mouseData = null;
 };
 
 PacketHandler.prototype.process = function () {
-    Logger.debug("PacketHandler process entry");
     if (this.pressSpace) { // Split cell
         this.socket.playerTracker.pressSpace();
         this.pressSpace = false;
@@ -281,7 +268,6 @@ PacketHandler.prototype.process = function () {
         this.socket.playerTracker.minionEject = false;
     }
     this.processMouse();
-    Logger.debug("PacketHandler process exit");
 };
 
 PacketHandler.prototype.getRandomSkin = function () {
@@ -320,10 +306,10 @@ PacketHandler.prototype.setNickname = function (text) {
         name = userName;
     }
     
-    if (name.length > this.gameServer.config.playerMaxNickLength)
-        name = name.substring(0, this.gameServer.config.playerMaxNickLength);
+    if (name.length > this.darkServer.config.playerMaxNickLength)
+        name = name.substring(0, this.darkServer.config.playerMaxNickLength);
     
-    if (this.gameServer.checkBadWord(name)) {
+    if (this.darkServer.checkBadWord(name)) {
         skin = null;
         name = "Hi there!";
     }

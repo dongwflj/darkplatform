@@ -8,21 +8,21 @@ var Packet = require('./packet');
 var PlayerTracker = require('./PlayerTracker');
 var PacketHandler = require('./PacketHandler');
 var Entity = require('./entity');
-var Logger = require('./modules/Logger');
+var Logger = require('../modules/Logger');
 
-// GameServer implementation
-function GameServer() {
+// DarkServer implementation
+function DarkServer() {
     // Location of source files - For renaming or moving source files!
-    this.srcFiles = "../src";
+    this.srcFiles = "../etc";
     
     // Startup
     this.run = true;
-    this.version = '1.5.0';
+    this.version = '1.0.0';
     this.httpServer = null;
     this.commands = null;
     this.lastNodeId = 1;
     this.lastPlayerId = 1;
-    this.clients = [];
+    this.m_Clients = [];
     this.socketCount = 0;
     this.largestClient = null; // Required for spectators
     this.nodes = [];        // Total nodes
@@ -34,8 +34,8 @@ function GameServer() {
     this.leaderboard = [];
     this.leaderboardType = -1; // no type
     
-    var BotLoader = require('./ai/BotLoader');
-    this.bots = new BotLoader(this);
+///    var BotLoader = require('./ai/BotLoader');
+///    this.bots = new BotLoader(this);
     
     // Main loop tick
     this.startTime = Date.now();
@@ -72,8 +72,8 @@ function GameServer() {
         serverMaxLB: 10,            // Controls the maximum players displayed on the leaderboard.
         serverChat: 1,              // Allows the usage of server chat. 0 = no chat, 1 = use chat.
         serverChatAscii: 1,         // Set to 1 to disable non-ANSI letters in the chat (english only)
-        serverName: 'MultiOgar-Edited #1', // Server name
-        serverWelcome1: 'Welcome to MultiOgar-Edited!',      // First server welcome message
+        serverName: 'Dark #1', // Server name
+        serverWelcome1: 'Welcome to Dark Forest!',      // First server welcome message
         serverWelcome2: '',         // Second server welcome message (optional, for info, etc)
         clientBind: '',             // Only allow connections to the server from specified client (eg: http://agar.io - http://mywebsite.com - http://more.com) [Use ' - ' to seperate different websites]
         
@@ -138,25 +138,26 @@ function GameServer() {
 
     // Parse config
     this.loadConfig();
-    this.loadIpBanList();
+/*    this.loadIpBanList();
     this.loadUserList();
     this.loadBadWords();
-    
-    var QuadNode = require('./modules/QuadNode.js');
+*/    
+    var QuadNode = require('../modules/QuadNode.js');
     this.setBorder(this.config.borderWidth, this.config.borderHeight);
     this.quadTree = new QuadNode(this.border, 64, 32);
     
     // Gamemodes
-    var Gamemode = require('./gamemodes');
-    this.gameMode = Gamemode.get(this.config.serverGamemode);
+    var mode = require('../modes');
+    this.darkMode = mode.get(this.config.serverGamemode);
 }
 
-module.exports = GameServer;
+module.exports = DarkServer;
 
-GameServer.prototype.start = function() {
+DarkServer.prototype.start = function() {
+    Logger.info("Start entry");
     this.timerLoopBind = this.timerLoop.bind(this);
     this.mainLoopBind = this.mainLoop.bind(this);
-    this.gameMode.onServerInit(this); // Gamemode configurations
+    this.darkMode.onServerInit(this); // Gamemode configurations
     
     // Client Binding
     var bind =  this.config.clientBind + "";
@@ -170,6 +171,7 @@ GameServer.prototype.start = function() {
         maxPayload: 4096
     };
     Logger.info("WebSocket: " + this.config.serverWsModule);
+    Logger.info("Server bind: " + this.config.serverBind);
     WebSocket = require(this.config.serverWsModule);
     this.wsServer = new WebSocket.Server(wsOptions);
     this.wsServer.on('error', this.onServerSocketError.bind(this));
@@ -178,24 +180,24 @@ GameServer.prototype.start = function() {
     if (this.config.serverStatsPort > 0) this.startStatsServer(this.config.serverStatsPort);
 };
 
-GameServer.prototype.onHttpServerOpen = function() {
+DarkServer.prototype.onHttpServerOpen = function() {
     // Start Main Loop
     setTimeout(this.timerLoopBind, 1);
     
     // Done
     Logger.info("Listening on port " + this.config.serverPort);
-    Logger.info("Current game mode is " + this.gameMode.name);
+    Logger.info("Current mode is " + this.darkMode.name);
     
     // Player bots (Experimental)
-    if (this.config.serverBots) {
+/*    if (this.config.serverBots) {
         for (var i = 0; i < this.config.serverBots; i++) {
             this.bots.addBot();
         }
         Logger.info("Added " + this.config.serverBots + " player bots");
-    }
+    }*/
 };
 
-GameServer.prototype.addNode = function(node) {
+DarkServer.prototype.addNode = function(node) {
     var x = node.position.x;
     var y = node.position.y;
     var size = node._size;
@@ -215,7 +217,7 @@ GameServer.prototype.addNode = function(node) {
     node.onAdd(this); // Special on-add actions
 };
 
-GameServer.prototype.onServerSocketError = function(error) {
+DarkServer.prototype.onServerSocketError = function(error) {
     Logger.error("WebSocket: " + error.code + " - " + error.message);
     switch (error.code) {
         case "EADDRINUSE":
@@ -229,7 +231,7 @@ GameServer.prototype.onServerSocketError = function(error) {
     process.exit(1); // Exits the program
 };
 
-GameServer.prototype.onClientSocketOpen = function(ws) {
+DarkServer.prototype.onClientSocketOpen = function(ws) {
     var logip = ws._socket.remoteAddress + ":" + ws._socket.remotePort;
     ws.on('error', function(err) {
         Logger.writeError("[Ws connect error:" + logip + "] " + err.stack);
@@ -244,8 +246,8 @@ GameServer.prototype.onClientSocketOpen = function(ws) {
     }
     if (this.config.serverIpLimit) {
         var ipConnections = 0;
-        for (var i = 0; i < this.clients.length; i++) {
-            var socket = this.clients[i];
+        for (var i = 0; i < this.m_Clients.length; i++) {
+            var socket = this.m_Clients[i];
             if (!socket.isConnected || socket.remoteAddress != ws._socket.remoteAddress)
                 continue;
             ipConnections++;
@@ -265,22 +267,26 @@ GameServer.prototype.onClientSocketOpen = function(ws) {
     ws.lastAliveTime = Date.now();
     Logger.info("Client CONNECTED:" + ws.remoteAddress + ":" + ws.remotePort + ", origin: \"" + ws.upgradeReq.headers.origin + "\"");
     
-    var PlayerCommand = require('./modules/PlayerCommand');
+    var PlayerCommand = require('../modules/PlayerCommand');
     ws.playerTracker = new PlayerTracker(this, ws);
     ws.packetHandler = new PacketHandler(this, ws);
     ws.playerCommand = new PlayerCommand(this, ws.playerTracker);
     
     var onMessage = function(message) {
         if (!message.length) {
+            Logger.info("Client send empty message");
             return;
         }
         if (message.length > 256) {
+            Logger.info("Client send message too long, close it");
             ws.close(1009, "Spam");
             return;
         }
+        // Handle client's request
         ws.packetHandler.handleMessage(message);
     };
     var onError = function(error) {
+        Logger.info("Client err:" + ws.remoteAddress);
         ws.sendPacket = function(data) { };
     };
     var self = this;
@@ -299,13 +305,13 @@ GameServer.prototype.onClientSocketOpen = function(ws) {
     ws.on('error', onError);
     ws.on('close', onClose);
     this.socketCount++;
-    this.clients.push(ws);
+    this.m_Clients.push(ws);
     
     // Check for external minions
     this.checkMinion(ws);
 };
 
-GameServer.prototype.checkMinion = function(ws) {
+DarkServer.prototype.checkMinion = function(ws) {
     // Check headers (maybe have a config for this?)
     if (!ws.upgradeReq.headers['user-agent'] || !ws.upgradeReq.headers['cache-control'] ||
         ws.upgradeReq.headers['user-agent'].length < 50) {
@@ -337,7 +343,7 @@ GameServer.prototype.checkMinion = function(ws) {
     }
 };
 
-GameServer.prototype.checkIpBan = function(ipAddress) {
+DarkServer.prototype.checkIpBan = function(ipAddress) {
     if (!this.ipBanList || !this.ipBanList.length || ipAddress == "127.0.0.1") {
         return false;
     }
@@ -360,14 +366,14 @@ GameServer.prototype.checkIpBan = function(ipAddress) {
     return false;
 };
 
-GameServer.prototype.setBorder = function(width, height) {
+DarkServer.prototype.setBorder = function(width, height) {
     var hw = width / 2, hh = height / 2;
     this.border = {
         minx: -hw, miny: -hh, maxx: hw, maxy: hh, width: width, height: height, centerx: 0, centery: 0
     };
 };
 
-GameServer.prototype.getRandomColor = function() {
+DarkServer.prototype.getRandomColor = function() {
     // get random
     var colorRGB = [0xFF, 0x07, (Math.random() * 256) >> 0];
     colorRGB.sort(function() {
@@ -381,7 +387,7 @@ GameServer.prototype.getRandomColor = function() {
     };
 };
 
-GameServer.prototype.removeNode = function(node) {
+DarkServer.prototype.removeNode = function(node) {
     node.isRemoved = true;
     this.quadTree.remove(node.quadItem);
     node.quadItem = null;
@@ -402,7 +408,7 @@ GameServer.prototype.removeNode = function(node) {
     node.onRemove(this);
 };
 
-GameServer.prototype.updateClients = function() {
+DarkServer.prototype.updateClients = function() {
     // check minions
     for (var i = 0; i < this.minionTest.length; ) {
         var date = new Date();
@@ -413,48 +419,48 @@ GameServer.prototype.updateClients = function() {
         }
     }
     // check dead clients
-    for (var i = 0; i < this.clients.length; ) {
-        var client = this.clients[i].playerTracker;
+    for (var i = 0; i < this.m_Clients.length; ) {
+        var client = this.m_Clients[i].playerTracker;
         client.checkConnection();
         if (client.isRemoved) {
             // remove dead client
-            this.clients.splice(i, 1);
+            this.m_Clients.splice(i, 1);
         } else {
             i++;
         }
     }
     // update
-    for (var i = 0; i < this.clients.length; i++) {
-        this.clients[i].playerTracker.updateTick();
+    for (var i = 0; i < this.m_Clients.length; i++) {
+        this.m_Clients[i].playerTracker.updateTick();
     }
-    for (var i = 0; i < this.clients.length; i++) {
-        this.clients[i].playerTracker.sendUpdate();
+    for (var i = 0; i < this.m_Clients.length; i++) {
+        this.m_Clients[i].playerTracker.sendUpdate();
     }
 };
 
-GameServer.prototype.updateLeaderboard = function() {
+DarkServer.prototype.updateLeaderboard = function() {
     // Update leaderboard with the gamemode's method
     this.leaderboard = [];
     this.leaderboardType = -1;
-    this.gameMode.updateLB(this);
+    this.darkMode.updateLB(this);
     
-    if (!this.gameMode.specByLeaderboard) {
+    if (!this.darkMode.specByLeaderboard) {
         // Get client with largest score if gamemode doesn't have a leaderboard
-        var clients = this.clients.valueOf();
+        var m_Clients = this.m_Clients.valueOf();
         
         // Use sort function
-        clients.sort(function(a, b) {
+        m_Clients.sort(function(a, b) {
             return b.playerTracker._score - a.playerTracker._score;
         });
         this.largestClient = null;
-        if (clients[0] !== null)
-            this.largestClient = clients[0].playerTracker;
+        if (m_Clients[0] !== null)
+            this.largestClient = m_Clients[0].playerTracker;
     } else {
-        this.largestClient = this.gameMode.rankOne;
+        this.largestClient = this.darkMode.rankOne;
     }
 };
 
-GameServer.prototype.onChatMessage = function(from, to, message) {
+DarkServer.prototype.onChatMessage = function(from, to, message) {
     if (!message) return;
     message = message.trim();
     if (message === "") return;
@@ -491,7 +497,7 @@ GameServer.prototype.onChatMessage = function(from, to, message) {
     this.sendChatMessage(from, to, message);
 };
 
-GameServer.prototype.checkBadWord = function(value) {
+DarkServer.prototype.checkBadWord = function(value) {
     if (!value) return false;
     value = value.toLowerCase().trim();
     if (!value) return false;
@@ -503,23 +509,25 @@ GameServer.prototype.checkBadWord = function(value) {
     return false;
 };
 
-GameServer.prototype.sendChatMessage = function(from, to, message) {
-    for (var i = 0, len = this.clients.length; i < len; i++) {
-        var client = this.clients[i];
+DarkServer.prototype.sendChatMessage = function(from, to, message) {
+    for (var i = 0, len = this.m_Clients.length; i < len; i++) {
+        var client = this.m_Clients[i];
         if (!client) continue;
         if (!to || to == client.playerTracker)
             client.sendPacket(new Packet.ChatMessage(from, message));
     }
 };
 
-GameServer.prototype.timerLoop = function() {
+DarkServer.prototype.timerLoop = function() {
     var timeStep = 40;
     var ts = Date.now();
     var dt = ts - this.timeStamp;
     if (dt < timeStep - 5) {
+        //Mainloop only can be run after 40ms
         setTimeout(this.timerLoopBind, ((timeStep - 5) - dt) >> 0);
         return;
     }
+    // if dl is too long, then we make timestamp faster
     if (dt > 120) this.timeStamp = ts - timeStep;
     // update average
     this.updateTimeAvg += 0.5 * (this.updateTime - this.updateTimeAvg);
@@ -531,7 +539,7 @@ GameServer.prototype.timerLoop = function() {
     setTimeout(this.timerLoopBind, 0);
 };
 
-GameServer.prototype.mainLoop = function() {
+DarkServer.prototype.mainLoop = function() {
     this.stepDateTime = Date.now();
     var tStart = process.hrtime();
     var self = this;
@@ -557,8 +565,8 @@ GameServer.prototype.mainLoop = function() {
             });
         }
         // move cells and scan for collisions
-        for (var i in this.clients) {
-            var client = this.clients[i].playerTracker;
+        for (var i in this.m_Clients) {
+            var client = this.m_Clients[i].playerTracker;
             for (var j = 0; j < client.cells.length; j++) {
                 var cell1 = client.cells[j];
                 if (cell1.isRemoved || !cell1 || !client)
@@ -587,7 +595,7 @@ GameServer.prototype.mainLoop = function() {
         if ((this.tickCounter % this.config.spawnInterval) === 0) {
             this.spawnCells(this.randomPos());
         }
-        this.gameMode.onTick(this);
+        this.darkMode.onTick(this);
         this.tickCounter++;
     }
     this.updateClients();
@@ -606,7 +614,7 @@ GameServer.prototype.mainLoop = function() {
 };
 
 // update remerge first
-GameServer.prototype.updateRemerge = function(cell1, client) {
+DarkServer.prototype.updateRemerge = function(cell1, client) {
     // update remerge
     var ttr = Math.max(this.config.playerRecombineTime, cell1._size * 0.2);
     if (cell1.getAge() < 13) cell1._canRemerge = false;
@@ -620,7 +628,7 @@ GameServer.prototype.updateRemerge = function(cell1, client) {
 };
 
 // decay player cells
-GameServer.prototype.updateMassDecay = function(cell1) {
+DarkServer.prototype.updateMassDecay = function(cell1) {
     var rate = this.config.playerDecayRate,
         cap = this.config.playerDecayCap,
         size = cell1._size;
@@ -629,14 +637,14 @@ GameServer.prototype.updateMassDecay = function(cell1) {
         return;
     // get actual decay rate
     if (cap && cell1._mass > cap) rate *= 10;
-    var decay = 1 - rate * this.gameMode.decayMod;
+    var decay = 1 - rate * this.darkMode.decayMod;
     // remove size from cell(s)
     size = Math.sqrt(size * size * decay);
     size = Math.max(size, this.config.playerMinSize);
     cell1.setSize(size);
 };
 
-GameServer.prototype.moveCell = function(cell1) {
+DarkServer.prototype.moveCell = function(cell1) {
     if (cell1.isMoving && !cell1.boostDistance) {
         cell1.boostDistance = 0;
         cell1.isMoving = false;
@@ -657,7 +665,7 @@ GameServer.prototype.moveCell = function(cell1) {
     cell1.checkBorder(this.border);
 };
 
-GameServer.prototype.movePlayer = function(cell1, client) {
+DarkServer.prototype.movePlayer = function(cell1, client) {
     if (client.socket.isConnected == false || client.frozen) 
         return;
     // TODO: use vector for distance(s)
@@ -677,7 +685,7 @@ GameServer.prototype.movePlayer = function(cell1, client) {
     cell1.position.y += dy / d * speed;
 };
 
-GameServer.prototype.autoSplit = function(cell1, client) {
+DarkServer.prototype.autoSplit = function(cell1, client) {
     // square size limit if client is in rec mode
     if (!client.rec) var maxSize = this.config.playerMaxSize; 
     else maxSize = this.config.playerMaxSize * this.config.playerMaxSize;
@@ -695,7 +703,7 @@ GameServer.prototype.autoSplit = function(cell1, client) {
     }
 };
 
-GameServer.prototype.updateNodeQuad = function(node) {
+DarkServer.prototype.updateNodeQuad = function(node) {
     var item = node.quadItem;
     var x = node.position.x;
     var y = node.position.y;
@@ -716,7 +724,7 @@ GameServer.prototype.updateNodeQuad = function(node) {
 };
 
 // Checks cells for collision
-GameServer.prototype.checkCellCollision = function(cell, check) {
+DarkServer.prototype.checkCellCollision = function(cell, check) {
     var r = cell._size + check._size;
     var dx = check.position.x - cell.position.x;
     var dy = check.position.y - cell.position.y;
@@ -737,12 +745,12 @@ GameServer.prototype.checkCellCollision = function(cell, check) {
 };
 
 // Checks if collision is rigid body collision
-GameServer.prototype.checkRigidCollision = function(c) {
+DarkServer.prototype.checkRigidCollision = function(c) {
     if (!c.cell1.owner || !c.cell2.owner)
         return false;
     if (c.cell1.owner != c.cell2.owner) {
         // Different owners
-        return this.gameMode.haveTeams && 
+        return this.darkMode.haveTeams && 
             c.cell1.owner.team == c.cell2.owner.team;
     }
     // The same owner
@@ -757,7 +765,7 @@ GameServer.prototype.checkRigidCollision = function(c) {
 };
 
 // Resolves rigid body collision
-GameServer.prototype.resolveRigidCollision = function(c) {
+DarkServer.prototype.resolveRigidCollision = function(c) {
     if (c.d > c.r) return;
     // body impulse
     var m = c.cell1._mass + c.cell2._mass;
@@ -771,7 +779,7 @@ GameServer.prototype.resolveRigidCollision = function(c) {
 };
 
 // Resolves rigid body collision for ejected cells
-GameServer.prototype.resolveRigidCollisionE = function(c) {
+DarkServer.prototype.resolveRigidCollisionE = function(c) {
     if (c.d > c.r) return;
     // push ejected cells apart
     c.cell1.position.x -= c.push * c.dx * 0.4;
@@ -779,7 +787,7 @@ GameServer.prototype.resolveRigidCollisionE = function(c) {
 };
 
 // Resolves non-rigid body collision
-GameServer.prototype.resolveCollision = function(manifold) {
+DarkServer.prototype.resolveCollision = function(manifold) {
     var cell = manifold.cell1;
     var check = manifold.cell2;
     if (cell._size > check._size) {
@@ -816,7 +824,7 @@ GameServer.prototype.resolveCollision = function(manifold) {
     this.removeNode(cell);
 };
 
-GameServer.prototype.splitPlayerCell = function(client, parent, angle, mass, m) {
+DarkServer.prototype.splitPlayerCell = function(client, parent, angle, mass, m) {
     // Player cell limit
     if (client.cells.length >= m) return;
     
@@ -851,14 +859,14 @@ GameServer.prototype.splitPlayerCell = function(client, parent, angle, mass, m) 
     return true;
 };
 
-GameServer.prototype.randomPos = function() {
+DarkServer.prototype.randomPos = function() {
     return {
         x: this.border.minx + this.border.width * Math.random(),
         y: this.border.miny + this.border.height * Math.random()
     };
 };
 
-GameServer.prototype.spawnCells = function(pos) {
+DarkServer.prototype.spawnCells = function(pos) {
     // spawn food at random size
     var maxCount = this.config.foodMinAmount - this.nodesFood.length;
     var spawnCount = Math.min(maxCount, this.config.foodSpawnAmount);
@@ -883,7 +891,7 @@ GameServer.prototype.spawnCells = function(pos) {
     }
 };
 
-GameServer.prototype.spawnPlayer = function(player, pos) {
+DarkServer.prototype.spawnPlayer = function(player, pos) {
     if (this.disableSpawn) return; // not allowed to spawn!
     
     // Check for special start size(s)
@@ -932,7 +940,7 @@ GameServer.prototype.spawnPlayer = function(player, pos) {
     }
 };
 
-GameServer.prototype.willCollide = function(pos, size) {
+DarkServer.prototype.willCollide = function(pos, size) {
     // Look if there will be any collision with the current nodes
     var bound = {
         minx: pos.x - size,
@@ -950,7 +958,7 @@ GameServer.prototype.willCollide = function(pos, size) {
         });
 };
 
-GameServer.prototype.splitCells = function(client) {
+DarkServer.prototype.splitCells = function(client) {
     var cellToSplit = []; // Split cell order decided by cell age
     for (var i = 0; i < client.cells.length; i++) {
         if (client.cells[i]._size < this.config.playerMinSplitSize) {
@@ -977,7 +985,7 @@ GameServer.prototype.splitCells = function(client) {
     }
 };
 
-GameServer.prototype.canEjectMass = function(client) {
+DarkServer.prototype.canEjectMass = function(client) {
     if (client.lastEject === null) {
         // first eject
         client.lastEject = this.tickCounter;
@@ -992,7 +1000,7 @@ GameServer.prototype.canEjectMass = function(client) {
     return true;
 };
 
-GameServer.prototype.ejectMass = function(client) {
+DarkServer.prototype.ejectMass = function(client) {
     if (!this.canEjectMass(client) || client.frozen)
         return;
     for (var i = 0; i < client.cells.length; i++) {
@@ -1043,7 +1051,7 @@ GameServer.prototype.ejectMass = function(client) {
     }
 };
 
-GameServer.prototype.shootVirus = function(parent, angle) {
+DarkServer.prototype.shootVirus = function(parent, angle) {
     var pos = {
         x: parent.position.x,
         y: parent.position.y,
@@ -1055,9 +1063,9 @@ GameServer.prototype.shootVirus = function(parent, angle) {
     this.addNode(newVirus);
 };
 
-GameServer.prototype.loadConfig = function() {
-    var fileNameConfig = this.srcFiles + '/gameserver.ini';
-    var ini = require(this.srcFiles + '/modules/ini.js');
+DarkServer.prototype.loadConfig = function() {
+    var fileNameConfig = './etc/server.ini';
+    var ini = require('../modules/ini.js');
     try {
         if (!fs.existsSync(fileNameConfig)) {
             // No config
@@ -1086,7 +1094,7 @@ GameServer.prototype.loadConfig = function() {
     Logger.setFileVerbosity(this.config.logFileVerbosity);
 };
 
-GameServer.prototype.loadBadWords = function() {
+DarkServer.prototype.loadBadWords = function() {
     var fileNameBadWords = this.srcFiles + '/badwords.txt';
     try {
         if (!fs.existsSync(fileNameBadWords)) {
@@ -1105,7 +1113,7 @@ GameServer.prototype.loadBadWords = function() {
     }
 };
 
-GameServer.prototype.loadUserList = function() {
+DarkServer.prototype.loadUserList = function() {
     var UserRoleEnum = require(this.srcFiles + '/enum/UserRoleEnum');
     var fileNameUsers = this.srcFiles + '/enum/userRoles.json';
     try {
@@ -1151,7 +1159,7 @@ GameServer.prototype.loadUserList = function() {
     }
 };
 
-GameServer.prototype.loadIpBanList = function() {
+DarkServer.prototype.loadIpBanList = function() {
     var fileNameIpBan = this.srcFiles + '/ipbanlist.txt';
     try {
         if (fs.existsSync(fileNameIpBan)) {
@@ -1186,7 +1194,7 @@ WebSocket.prototype.sendPacket = function(packet) {
     }
 };
 
-GameServer.prototype.startStatsServer = function(port) {
+DarkServer.prototype.startStatsServer = function(port) {
     // Create stats
     this.stats = "Test";
     this.getStats();
@@ -1209,13 +1217,13 @@ GameServer.prototype.startStatsServer = function(port) {
     }.bind(this));
 };
 
-GameServer.prototype.getStats = function() {
+DarkServer.prototype.getStats = function() {
     // Get server statistics
     var totalPlayers = 0;
     var alivePlayers = 0;
     var spectatePlayers = 0;
-    for (var i = 0; i < this.clients.length; i++) {
-        var socket = this.clients[i];
+    for (var i = 0; i < this.m_Clients.length; i++) {
+        var socket = this.m_Clients[i];
         if (!socket || !socket.isConnected)
             continue;
         totalPlayers++;
@@ -1229,7 +1237,7 @@ GameServer.prototype.getStats = function() {
         'server_chat': this.config.serverChat ? "true" : "false",
         'border_width': this.border.width,
         'border_height': this.border.height,
-        'gamemode': this.gameMode.name,
+        'gamemode': this.darkMode.name,
         'max_players': this.config.serverMaxConnections,
         'current_players': totalPlayers,
         'alive': alivePlayers,
@@ -1243,15 +1251,15 @@ GameServer.prototype.getStats = function() {
 
 // Pings the server tracker, should be called every 30 seconds
 // To list us on the server tracker located at http://ogar.mivabe.nl/master
-GameServer.prototype.pingServerTracker = function() {
+DarkServer.prototype.pingServerTracker = function() {
     // Get server statistics
     var os = require('os');
     var totalPlayers = 0;
     var alivePlayers = 0;
     var spectatePlayers = 0;
     var robotPlayers = 0;
-    for (var i = 0; i < this.clients.length; i++) {
-        var socket = this.clients[i];
+    for (var i = 0; i < this.m_Clients.length; i++) {
+        var socket = this.m_Clients[i];
         if (!socket || socket.isConnected == false)
             continue;
         if (socket.isConnected == null) {
@@ -1270,7 +1278,7 @@ GameServer.prototype.pingServerTracker = function() {
     var obj = {
         port: this.config.serverPort,               // [mandatory] web socket port which listens for game client connections
         name: this.config.serverName,               // [mandatory] server name
-        mode: this.gameMode.name,                   // [mandatory] game mode
+        mode: this.darkMode.name,                   // [mandatory] game mode
         total: totalPlayers,                        // [mandatory] total online players (server bots is not included!)
         alive: alivePlayers,                        // [mandatory] alive players (server bots is not included!)
         spect: spectatePlayers,                     // [mandatory] spectate players (server bots is not included!)
@@ -1299,7 +1307,7 @@ GameServer.prototype.pingServerTracker = function() {
                '&spectators=' + spectatePlayers +
                '&max_players=' + this.config.serverMaxConnections +
                '&sport=' + this.config.serverPort +
-               '&gamemode=[**] ' + this.gameMode.name +             // we add [**] to indicate that this is MultiOgar-Edited server
+               '&gamemode=[**] ' + this.darkMode.name +             // we add [**] to indicate that this is MultiOgar-Edited server
                '&agario=true' +                                     // protocol version
                '&name=Unnamed Server' +                             // we cannot use it, because other value will be used as dns name
                '&opp=' + os.platform() + ' ' + os.arch() +          // "win32 x64"

@@ -22,7 +22,7 @@ ChatMessage.prototype.build = function (protocol) {
             color = this.sender.cells[0].color;
         }
     }
-    var UserRoleEnum = require("../enum/UserRoleEnum");
+    var UserRoleEnum = require("../../enum/UserRoleEnum");
     var BinaryWriter = require("./BinaryWriter");
     var writer = new BinaryWriter();
     writer.writeUInt8(0x63);            // message id (decimal 99)

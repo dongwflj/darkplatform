@@ -56,8 +56,10 @@ Cell.prototype.getAge = function () {
 // Called to eat prey cell
 Cell.prototype.onEat = function (prey) {
     if (!this.darkServer.config.playerBotGrow) {
-        if (this._mass >= 625 && prey._mass <= 17 && prey.cellType == 0)
+        if (this._mass >= 625 && prey._mass <= 17 && prey.cellType == 0) {
             prey._sizeSquared = 0; // Can't grow from players under 17 mass
+            return;
+        }
     }
     this.setSize(Math.sqrt(this._sizeSquared + prey._sizeSquared));
 };
@@ -77,7 +79,7 @@ Cell.prototype.setBoost = function (distance, angle) {
     }
 };
 
-Cell.prototype.checkBorder = function (border) {
+Cell.prototype.limitWithBorder = function (border) {
     this.position.x = Math.max(this.position.x, border.minx + this._size / 2);
     this.position.y = Math.max(this.position.y, border.miny + this._size / 2);
     this.position.x = Math.min(this.position.x, border.maxx - this._size / 2);

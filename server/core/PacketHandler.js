@@ -27,7 +27,6 @@ module.exports = PacketHandler;
 
 PacketHandler.prototype.handleMessage = function (message) {
     if (!this.handler.hasOwnProperty(message[0])) {
-        Logger.error("Invalid message");
         return;
     }
     this.handler[message[0]](message);

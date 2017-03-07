@@ -1,5 +1,5 @@
 var FFA = require('./FFA'); // Base gamemode
-var Entity = require('../entity');
+var Entity = require('../core/entity');
 var Logger = require('../modules/Logger');
 
 function Experimental() {

@@ -19,15 +19,16 @@ PlayerCell.prototype.canEat = function (cell) {
 
 PlayerCell.prototype.getSpeed = function (dist) {
     var speed = 2.1106 / Math.pow(this._size, 0.449);
-    var normalizedDist = Math.min(dist, 32) / 32;
+    /// var normalizedDist = Math.min(dist, 32) / 32;
     // tickStep = 40ms
     this._speed = speed * 40 * this.darkServer.config.playerSpeed;
-    return this._speed * normalizedDist;
+    /// Ewen: return this._speed * normalizedDist;
+    return this._speed;
 };
 
 PlayerCell.prototype.onAdd = function (darkServer) {
     // Gamemode actions
-    darkServer.gameMode.onCellAdd(this);
+    darkServer.darkMode.onCellAdd(this);
 };
 
 PlayerCell.prototype.onRemove = function (darkServer) {
@@ -37,5 +38,5 @@ PlayerCell.prototype.onRemove = function (darkServer) {
         this.owner.cells.splice(index, 1);
     }
     // Gamemode actions
-    darkServer.gameMode.onCellRemove(this);
+    darkServer.darkMode.onCellRemove(this);
 };

@@ -232,7 +232,7 @@ PlayerTracker.prototype.checkConnection = function() {
 PlayerTracker.prototype.updateTick = function() {
     if (this.isRemoved) return;
     this.socket.packetHandler.process();
-    if (this.darkServer.clients.length > 800 && this.isMi) return;
+    if (this.darkServer.m_Clients.length > 800 && this.isMi) return;
     if (this.spectate) {
         if (this.freeRoam || this.getSpectateTarget() == null) {
             // free roam

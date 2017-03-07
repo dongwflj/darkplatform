@@ -1,5 +1,5 @@
 ﻿var FFA = require('./FFA'); // Base gamemode
-var Food = require('../entity/Food');
+var Food = require('../core/entity/Food');
 
 function Rainbow() {
     FFA.apply(this, Array.prototype.slice.call(arguments));

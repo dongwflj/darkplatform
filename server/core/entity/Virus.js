@@ -33,10 +33,10 @@ Virus.prototype.onEat = function (prey) {
 Virus.prototype.onEaten = function (c) {
     var minSize = Math.max(this.darkServer.config.playerMinSize, 32),           // maximum size of small splits
     cellsLeft = this.darkServer.config.playerMaxCells - c.owner.cells.length,   // how many cells can split
-    threshold = c._mass - cellsLeft * minSize;                                  // size check for exploding cells
+  //  threshold = c._mass - cellsLeft * minSize;                                  // size check for exploding cells
 
     // Diverse explosion(s)
-    var big = []; // amount of big splits
+    /**var big = []; // amount of big splits
     if (cellsLeft <= 0) return; // cannot split
     else if (cellsLeft == 1) big = [c._mass/2];
     else if (cellsLeft == 2) big = [c._mass/4,c._mass/4];
@@ -52,16 +52,19 @@ Virus.prototype.onEaten = function (c) {
             big.push(threshold >> 0);
         }
     }
-    cellsLeft -= big.length;
+    cellsLeft -= big.length;*/
+
     // big splits
-    for (var k = 0; k < big.length; k++) {
+    /*for (var k = 0; k < big.length; k++) {
         var angle = 2 * Math.PI * Math.random(); // random directions
         this.darkServer.splitPlayerCell(c.owner, c, angle, big[k]);
-    }
+    }*/
     // small splits
+    angle = 2 * Math.PI * Math.random(); // random directions
+    step = 0.6283;
     for (var k = 0; k < cellsLeft; k++) {
-        angle = 2 * Math.PI * Math.random(); // random directions
         this.darkServer.splitPlayerCell(c.owner, c, angle, minSize);
+        angle += step;
     }
 };
 

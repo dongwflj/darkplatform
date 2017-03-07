@@ -34,8 +34,8 @@ function DarkServer() {
     this.leaderboard = [];
     this.leaderboardType = -1; // no type
     
-///    var BotLoader = require('./ai/BotLoader');
-///    this.bots = new BotLoader(this);
+    var BotLoader = require('../ai/BotLoader');
+    this.bots = new BotLoader(this);
     
     // Main loop tick
     this.startTime = Date.now();
@@ -189,12 +189,12 @@ DarkServer.prototype.onHttpServerOpen = function() {
     Logger.info("Current mode is " + this.darkMode.name);
     
     // Player bots (Experimental)
-/*    if (this.config.serverBots) {
+    if (this.config.serverBots) {
         for (var i = 0; i < this.config.serverBots; i++) {
             this.bots.addBot();
         }
         Logger.info("Added " + this.config.serverBots + " player bots");
-    }*/
+    }
 };
 
 DarkServer.prototype.addNode = function(node) {
@@ -418,11 +418,11 @@ DarkServer.prototype.updateClients = function() {
             i++;
         }
     }
-    // check dead clients
+    // check and remove dead clients
     for (var i = 0; i < this.m_Clients.length; ) {
-        var client = this.m_Clients[i].playerTracker;
-        client.checkConnection();
-        if (client.isRemoved) {
+        var player = this.m_Clients[i].playerTracker;
+        player.checkConnection();
+        if (player.isRemoved) {
             // remove dead client
             this.m_Clients.splice(i, 1);
         } else {
@@ -530,7 +530,13 @@ DarkServer.prototype.timerLoop = function() {
     // if dl is too long, then we make timestamp faster
     if (dt > 120) this.timeStamp = ts - timeStep;
     // update average
-    this.updateTimeAvg += 0.5 * (this.updateTime - this.updateTimeAvg);
+    //this.updateTimeAvg += 0.5 * (this.updateTime - this.updateTimeAvg);
+    if (this.updateTimeAvg == 0) {
+        this.updateTimeAvg = this.updateTime;
+    }
+    else {
+        this.updateTimeAvg = 0.5 * (this.updateTime + this.updateTimeAvg);
+    }
     // calculate next
     if (!this.timeStamp)
         this.timeStamp = ts;
@@ -566,16 +572,16 @@ DarkServer.prototype.mainLoop = function() {
         }
         // move cells and scan for collisions
         for (var i in this.m_Clients) {
-            var client = this.m_Clients[i].playerTracker;
-            for (var j = 0; j < client.cells.length; j++) {
-                var cell1 = client.cells[j];
-                if (cell1.isRemoved || !cell1 || !client)
+            var player = this.m_Clients[i].playerTracker;
+            for (var j = 0; j < player.cells.length; j++) {
+                var cell1 = player.cells[j];
+                if (cell1.isRemoved || !cell1 || !player)
                     continue;
                 // move player cells
-                this.updateRemerge(cell1, client);
+                this.updateRemerge(cell1, player);
                 this.moveCell(cell1);
-                this.movePlayer(cell1, client);
-                this.autoSplit(cell1, client);
+                this.movePlayer(cell1, player);
+                this.autoSplit(cell1, player);
                 this.updateNodeQuad(cell1);
                 // Scan for player cells collisions
                 this.quadTree.find(cell1.quadItem.bound, function(item) {
@@ -614,11 +620,11 @@ DarkServer.prototype.mainLoop = function() {
 };
 
 // update remerge first
-DarkServer.prototype.updateRemerge = function(cell1, client) {
+DarkServer.prototype.updateRemerge = function(cell1, player) {
     // update remerge
     var ttr = Math.max(this.config.playerRecombineTime, cell1._size * 0.2);
     if (cell1.getAge() < 13) cell1._canRemerge = false;
-    if (!this.config.playerRecombineTime || client.rec) {
+    if (!this.config.playerRecombineTime || player.rec) {
         cell1._canRemerge = cell1.boostDistance < 100;
         return; // instant merge
     }
@@ -640,6 +646,7 @@ DarkServer.prototype.updateMassDecay = function(cell1) {
     var decay = 1 - rate * this.darkMode.decayMod;
     // remove size from cell(s)
     size = Math.sqrt(size * size * decay);
+    ///size = size * decay;
     size = Math.max(size, this.config.playerMinSize);
     cell1.setSize(size);
 };
@@ -662,7 +669,7 @@ DarkServer.prototype.moveCell = function(cell1) {
         cell1.boostDirection.x =- cell1.boostDirection.x;
 	if (cell1.position.y < this.border.miny + r || cell1.position.y > this.border.maxy - r) 
 	    cell1.boostDirection.y =- cell1.boostDirection.y;
-    cell1.checkBorder(this.border);
+    cell1.limitWithBorder(this.border);
 };
 
 DarkServer.prototype.movePlayer = function(cell1, client) {
@@ -685,20 +692,21 @@ DarkServer.prototype.movePlayer = function(cell1, client) {
     cell1.position.y += dy / d * speed;
 };
 
-DarkServer.prototype.autoSplit = function(cell1, client) {
-    // square size limit if client is in rec mode
-    if (!client.rec) var maxSize = this.config.playerMaxSize; 
+DarkServer.prototype.autoSplit = function(cell1, player) {
+    // square size limit if player is in rec mode
+    if (!player.rec) var maxSize = this.config.playerMaxSize; 
     else maxSize = this.config.playerMaxSize * this.config.playerMaxSize;
     // check size limit
-    if (!client.mergeOverride && cell1._size > maxSize) {
-        if (client.cells.length >= this.config.playerMaxCells || this.config.mobilePhysics) {
+    if (!player.mergeOverride && cell1._size > maxSize) {
+        if (player.cells.length >= this.config.playerMaxCells || this.config.mobilePhysics) {
             // cannot split => just limit
             cell1.setSize(maxSize);
             if (this.config.mobilePhysics) return;
         } else {
             // split
             var angle = Math.random() * 2 * Math.PI;
-            this.splitPlayerCell(client, cell1, angle, cell1._mass / 2);
+            ///this.splitPlayerCell(player, cell1, angle, cell1._mass / 2);
+            this.splitPlayerCell(player, cell1, angle, cell1._mass / 2, this.config.playerMaxCells);
         }
     }
 };
@@ -824,16 +832,18 @@ DarkServer.prototype.resolveCollision = function(manifold) {
     this.removeNode(cell);
 };
 
-DarkServer.prototype.splitPlayerCell = function(client, parent, angle, mass, m) {
+DarkServer.prototype.splitPlayerCell = function(player, parent, angle, mass, m) {
     // Player cell limit
-    if (client.cells.length >= m) return;
+    if (player.cells.length >= m) return;
     
     if (mass === null) {
         //var size1 = parent._size / 1.41421356;
         var size1 = parent._size / 2;
     } else {
+        /// New size
         var size2 = Math.sqrt(mass * 100);
         size1 = Math.sqrt(parent._size * parent._size - size2 * size2);
+        Logger.debug("size1:"+size1+" size2:"+size2);
     }
     
     if (isNaN(size1) || size1 < this.config.playerMinSize) {
@@ -851,7 +861,7 @@ DarkServer.prototype.splitPlayerCell = function(client, parent, angle, mass, m) 
     };
     
     // Create cell
-    var newCell = new Entity.PlayerCell(this, client, pos, size2 || size1);
+    var newCell = new Entity.PlayerCell(this, player, pos, size2 || size1);
     newCell.setBoost(this.config.splitVelocity, angle);
     
     // Add to node list
@@ -905,7 +915,7 @@ DarkServer.prototype.spawnPlayer = function(player, pos) {
         }
     }
     // Check if can spawn from ejected mass
-    /*var index = (this.nodesEjected.length - 1) * ~~Math.random();
+    var index = (this.nodesEjected.length - 1) * ~~Math.random();
     var eject = this.nodesEjected[index];
     if (this.nodesEjected.length && !eject.isRemoved && eject.boostDistance < 1 &&
         Math.random() <= this.config.ejectSpawnPercent) {
@@ -918,11 +928,12 @@ DarkServer.prototype.spawnPlayer = function(player, pos) {
             y: eject.position.y
         };
         size = Math.max(eject._size, size);
-    }*/
-    // 10 attempts to find safe position
-    for (var i = 0; i < 10 && this.willCollide(pos, size); i++) {
-        pos = this.randomPos();
     }
+    // 10 attempts to find safe position
+    /// Ewen: 
+    /// for (var i = 0; i < 10 && this.willCollide(pos, size); i++) {
+        pos = this.randomPos();
+    ///}
     // Spawn player and add to world
     var cell = new Entity.PlayerCell(this, player, pos, size);
     this.addNode(cell);
@@ -958,60 +969,66 @@ DarkServer.prototype.willCollide = function(pos, size) {
         });
 };
 
-DarkServer.prototype.splitCells = function(client) {
+DarkServer.prototype.splitCells = function(player) {
+    /// Ewen
+    if (player.cells.length >= this.config.playerMaxCells) {
+        Logger.debug("Player has too much cell:" + player.cells.length);
+        return;
+    }
     var cellToSplit = []; // Split cell order decided by cell age
-    for (var i = 0; i < client.cells.length; i++) {
-        if (client.cells[i]._size < this.config.playerMinSplitSize) {
+    for (var i = 0; i < player.cells.length; i++) {
+        if (player.cells[i]._size < this.config.playerMinSplitSize) {
+            /// ignore small cell which can't split
             continue;
         }
-        cellToSplit.push(client.cells[i]);
+        cellToSplit.push(player.cells[i]);
         // rec mode
-        if (!client.rec) var m = this.config.playerMaxCells;
-        else m = this.config.playerMaxCells * this.config.playerMaxCells;
+        if (!player.rec) var maxCell = this.config.playerMaxCells;
+        else maxCell = this.config.playerMaxCells * this.config.playerMaxCells;
         // cannot split
-        if (cellToSplit.length + client.cells.length >= m)
+        if (cellToSplit.length + player.cells.length >= maxCell)
             break;
     }
     for (var i = 0; i < cellToSplit.length; i++) {
         var cell = cellToSplit[i];
-        var x = ~~(client.mouse.x - cell.position.x);
-        var y = ~~(client.mouse.y - cell.position.y);
+        var x = ~~(player.mouse.x - cell.position.x);
+        var y = ~~(player.mouse.y - cell.position.y);
         if (x * x + y * y < 1) {
             x = 1, y = 0;
         }
         var angle = Math.atan2(x, y);
         if (isNaN(angle)) angle = Math.PI / 2;
-        this.splitPlayerCell(client, cell, angle, null, m);
+        this.splitPlayerCell(player, cell, angle, null, maxCell);
     }
 };
 
-DarkServer.prototype.canEjectMass = function(client) {
-    if (client.lastEject === null) {
+DarkServer.prototype.canEjectMass = function(player) {
+    if (player.lastEject === null) {
         // first eject
-        client.lastEject = this.tickCounter;
+        player.lastEject = this.tickCounter;
         return true;
     }
-    var dt = this.tickCounter - client.lastEject;
+    var dt = this.tickCounter - player.lastEject;
     if (dt < this.config.ejectCooldown) {
         // reject (cooldown)
         return false;
     }
-    client.lastEject = this.tickCounter;
+    player.lastEject = this.tickCounter;
     return true;
 };
 
-DarkServer.prototype.ejectMass = function(client) {
-    if (!this.canEjectMass(client) || client.frozen)
+DarkServer.prototype.ejectMass = function(player) {
+    if (!this.canEjectMass(player) || player.frozen)
         return;
-    for (var i = 0; i < client.cells.length; i++) {
-        var cell = client.cells[i];
+    for (var i = 0; i < player.cells.length; i++) {
+        var cell = player.cells[i];
         
         if (!cell || cell._size < this.config.playerMinEjectSize) {
             continue;
         }
         
-        var dx = client.mouse.x - cell.position.x;
-        var dy = client.mouse.y - cell.position.y;
+        var dx = player.mouse.x - cell.position.x;
+        var dy = player.mouse.y - cell.position.y;
         var dl = dx * dx + dy * dy;
         var sq = Math.sqrt(dl);
         if (dl > 1) {
@@ -1024,9 +1041,11 @@ DarkServer.prototype.ejectMass = function(client) {
         
         // Remove mass from parent cell first
         var sizeLoss = this.config.ejectSizeLoss;
+        var size = cell._size - sizeLoss;
+        cell.setSize(size);
         ///var sizeSquared = cell._sizeSquared - sizeLoss * sizeLoss;
-        var sizeSquared = cell._sizeSquared - sizeLoss;
-        cell.setSize(Math.sqrt(sizeSquared));
+        ///var sizeSquared = cell._sizeSquared - sizeLoss;
+        ///cell.setSize(Math.sqrt(sizeSquared));
         
         // Get starting position
         var pos = {

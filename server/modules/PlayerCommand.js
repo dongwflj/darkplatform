@@ -5,15 +5,15 @@ var ErrorTextInvalidCommand = "ERROR: Unknown command, type /help for command li
 var ErrorTextBadCommand = "ERROR: Bad command!";
 
 
-function PlayerCommand(gameServer, playerTracker) {
-    this.gameServer = gameServer;
+function PlayerCommand(darkServer, playerTracker) {
+    this.darkServer = darkServer;
     this.playerTracker = playerTracker;
 }
 
 module.exports = PlayerCommand;
 
 PlayerCommand.prototype.writeLine = function (text) {
-    this.gameServer.sendChatMessage(null, this.playerTracker, text);
+    this.darkServer.sendChatMessage(null, this.playerTracker, text);
 };
 
 PlayerCommand.prototype.executeCommandLine = function (commandLine) {
@@ -53,8 +53,8 @@ PlayerCommand.prototype.userLogin = function (ip, password) {
     if (!password) return null;
     password = password.trim();
     if (!password) return null;
-    for (var i = 0; i < this.gameServer.userList.length; i++) {
-        var user = this.gameServer.userList[i];
+    for (var i = 0; i < this.darkServer.userList.length; i++) {
+        var user = this.darkServer.userList[i];
         if (user.password != password)
             continue;
         if (user.ip && user.ip != ip)
@@ -93,12 +93,12 @@ var playerCommands = {
         }
         while (this.playerTracker.cells.length > 0) {
             var cell = this.playerTracker.cells[0];
-            this.gameServer.removeNode(cell);
+            this.darkServer.removeNode(cell);
             // replace with food
             var food = require('../entity/Food');
-            food = new food(this.gameServer, null, cell.position, cell._size);
+            food = new food(this.darkServer, null, cell.position, cell._size);
             food.setColor(cell.color);
-            this.gameServer.addNode(food);
+            this.darkServer.addNode(food);
         }
         this.writeLine("You killed yourself");
     },

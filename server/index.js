@@ -1,10 +1,10 @@
 ﻿// Imports
 var Logger = require('./modules/Logger');
-//var Commands = require('./modules/CommandList');
+var Commands = require('./modules/CommandList');
 var DarkServer = require('./core/DarkServer');
 
 // Init variables
-var showConsole = false;
+var showConsole = true;
 
 // Start msg
 Logger.start();
@@ -21,8 +21,8 @@ process.on('uncaughtException', function (err) {
 
 // Handle arguments
 process.argv.forEach(function (val) {
-    if (val == "--console") {
-        showConsole = true;
+    if (val == "--noconsole") {
+        showConsole = false;
     } else if (val == "--help") {
         console.log("Proper Usage: node index.js");
         console.log("    --noconsole         Disables the console");
@@ -37,7 +37,7 @@ Logger.info("Dark server: " + darkServer.version + " started");
 darkServer.start();
 
 // Add command handler
-//darkServer.commands = Commands.list;
+darkServer.commands = Commands.list;
 // Initialize the server console
 if (showConsole) {
     var readline = require('readline');
@@ -64,7 +64,6 @@ function prompt() {
 function parseCommands(str) {
     // Log the string
     Logger.write("console cmd:" + str);
-/*    
     // Don't process ENTER
     if (str === '')
         return;
@@ -82,5 +81,4 @@ function parseCommands(str) {
     } else {
         Logger.warn("Invalid Command!");
     }
-*/
 }

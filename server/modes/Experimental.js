@@ -1,5 +1,5 @@
 var FFA = require('./FFA'); // Base gamemode
-var Entity = require('../core/entity');
+var Entity = require('../entity');
 var Logger = require('../modules/Logger');
 
 function Experimental() {
@@ -30,15 +30,10 @@ Experimental.prototype.spawnMotherCell = function (darkServer) {
     if (this.nodesMother.length >= this.motherMinAmount) {
         return;
     }
-    // Spawns a mother cell
-    var pos = darkServer.randomPos();
-    if (darkServer.willCollide(pos, 149)) {
-        // cannot find safe position => do not spawn
-        return;
-    }
     // Spawn if no cells are colliding
-    var mother = new Entity.MotherCell(darkServer, null, pos, null);
-    darkServer.addNode(mother);
+    var mother = new Entity.MotherCell(darkServer, null, darkServer.randomPos(), null);
+    if (!darkServer.willCollide(149, mother))
+        darkServer.addNode(mother);
 };
 
 // Override
@@ -51,8 +46,7 @@ Experimental.prototype.onServerInit = function (darkServer) {
     var self = this;
     Entity.Virus.prototype.onEat = function (prey) {
         // Pushes the virus
-        var angle = prey.isMoving ? prey.boostDirection.angle : this.boostDirection.angle;
-        this.setBoost(16 * 20, angle);
+        this.setBoost(220, prey.boostDirection.angle());
     };
     Entity.MotherCell.prototype.onAdd = function () {
         self.nodesMother.push(this);

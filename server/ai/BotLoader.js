@@ -1,6 +1,6 @@
 // Project imports
 var FakeSocket = require('./FakeSocket');
-var PacketHandler = require('../core/PacketHandler');
+var PacketHandler = require('../PacketHandler');
 
 function BotLoader(darkServer) {
     this.darkServer = darkServer;
@@ -17,7 +17,7 @@ BotLoader.prototype.getName = function () {
         var index = (this.randomNames.length * Math.random()) >>> 0;
         name = this.randomNames[index];
     } else {
-        name = "Ai" + ++this.nameIndex;
+        name = "bot" + ++this.nameIndex;
     }
     
     return name;
@@ -43,7 +43,7 @@ BotLoader.prototype.addBot = function () {
     s.packetHandler = new PacketHandler(this.darkServer, s);
     
     // Add to client list
-    this.darkServer.m_Clients.push(s);
+    this.darkServer.clients.push(s);
     
     // Add to world
     s.packetHandler.setNickname(this.getName());

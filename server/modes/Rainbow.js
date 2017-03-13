@@ -1,5 +1,5 @@
 ﻿var FFA = require('./FFA'); // Base gamemode
-var Food = require('../core/entity/Food');
+var Food = require('../entity/Food');
 
 function Rainbow() {
     FFA.apply(this, Array.prototype.slice.call(arguments));
@@ -154,10 +154,10 @@ Rainbow.prototype.changeColor = function (node) {
 Rainbow.prototype.onServerInit = function () {
 };
 
-Rainbow.prototype.onTick = function (gameServer) {
+Rainbow.prototype.onTick = function (darkServer) {
     // Change color
-    for (var i in gameServer.nodes) {
-        var node = gameServer.nodes[i];
+    for (var i in darkServer.nodes) {
+        var node = darkServer.nodes[i];
         if (!node) continue;
         this.changeColor(node);
     }

@@ -1,7 +1,8 @@
 ﻿// Imports
 var Logger = require('./modules/Logger');
 var Commands = require('./modules/CommandList');
-var DarkServer = require('./core/DarkServer');
+var DarkServer = require('./DarkServer');
+var figlet = require('figlet');
 
 // Init variables
 var showConsole = true;
@@ -33,9 +34,17 @@ process.argv.forEach(function (val) {
 
 // Run Ogar
 var darkServer = new DarkServer();
-Logger.info("Dark server: " + darkServer.version + " started");
+Logger.info("Dark Forest:" + darkServer.version);
 darkServer.start();
-
+/*figlet(('DarkForest: ' + darkServer.version), function(err, data) {
+     if (err) {
+         console.log('Something went wrong...');
+         console.dir(err);
+         return;
+     }
+     console.log(data)
+ });
+*/
 // Add command handler
 darkServer.commands = Commands.list;
 // Initialize the server console
@@ -49,8 +58,9 @@ if (showConsole) {
 }
 
 // Console functions
+
 function prompt() {
-    in_.question("dark>", function (str) {
+    in_.question(">", function (str) {
         try {
             parseCommands(str);
         } catch (err) {
@@ -63,7 +73,8 @@ function prompt() {
 
 function parseCommands(str) {
     // Log the string
-    Logger.write("console cmd:" + str);
+    Logger.write(">" + str);
+    
     // Don't process ENTER
     if (str === '')
         return;

@@ -28,7 +28,7 @@ BotPlayer.prototype.checkConnection = function () {
     }
     // Respawn if bot is dead
     if (!this.cells.length)
-        this.darkServer.gameMode.onPlayerSpawn(this.darkServer, this);
+        this.darkServer.darkMode.onPlayerSpawn(this.darkServer, this);
 };
 
 BotPlayer.prototype.sendUpdate = function () {
@@ -49,7 +49,7 @@ BotPlayer.prototype.decide = function (cell) {
         var influence = 0;
         if (check.cellType == 0) {
             // Player cell
-            if (this.darkServer.gameMode.haveTeams && cell.owner.team == check.owner.team) {
+            if (this.darkServer.darkMode.haveTeams && cell.owner.team == check.owner.team) {
                 // Same team cell
                 influence = 0;
             } else if (cell._size > check._size * 1.15) {

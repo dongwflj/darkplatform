@@ -1,5 +1,5 @@
 (function(wHandle, wjQuery) {
-    var CONNECTION_URL = "127.0.0.1:443", // Default Connection
+    var CONNECTION_URL = "127.0.0.1:8080", // Default Connection
         SKIN_URL = "./skins/"; // Skin Directory
 
     wHandle.setserver = function(arg) {
@@ -41,12 +41,12 @@
         }
 
         mainCanvas.onmouseup = function() {};
-        if (/firefox/i.test(navigator.userAgent)) {
+/**        if (/firefox/i.test(navigator.userAgent)) {
             document.addEventListener("DOMMouseScroll", handleWheel, false);
         } else {
             document.body.onmousewheel = handleWheel;
         }
-
+*/
         mainCanvas.onfocus = function() {
             isTyping = false;
         };
@@ -91,7 +91,7 @@
                     }
                     break;
                 case 87: // W
-                    if ((!wPressed) && (!isTyping)) {
+                    if (!isTyping) {
                         sendMouseMove();
                         sendUint8(21);
                         wPressed = true;
@@ -107,6 +107,7 @@
                     if (!ePressed && (!isTyping)) {
                         sendMouseMove();
                         sendUint8(22);
+                        ePressed = true;
                     }
                     break;
                 case 82: // R
@@ -145,7 +146,7 @@
                     break;
                 case 81: // Q
                     if (qPressed) {
-                        sendUint8(19);
+                        /// No handling sendUint8(19);
                         qPressed = false;
                     }
                     break;
@@ -164,7 +165,7 @@
             }
         };
         wHandle.onblur = function() {
-            sendUint8(19);
+            ///sendUint8(19);
             wPressed = spacePressed = qPressed = ePressed = rPressed = tPressed = pPressed = false
         };
 
@@ -235,9 +236,9 @@
     }
 
     function handleWheel(event) {
-        zoom *= Math.pow(.9, event.wheelDelta / -120 || event.detail || 0);
+/*        zoom *= Math.pow(.9, event.wheelDelta / -120 || event.detail || 0);
         1 > zoom && (zoom = 1);
-        zoom > 4 / viewZoom && (zoom = 4 / viewZoom)
+        zoom > 4 / viewZoom && (zoom = 4 / viewZoom)*/
     }
 
     function buildQTree() {

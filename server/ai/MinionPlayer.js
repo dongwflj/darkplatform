@@ -12,13 +12,13 @@ MinionPlayer.prototype = new PlayerTracker();
 MinionPlayer.prototype.checkConnection = function () {
     if (this.socket.isCloseRequest) {
         while (this.cells.length) {
-            this.gameServer.removeNode(this.cells[0]);
+            this.darkServer.removeNode(this.cells[0]);
         }
         this.isRemoved = true;
         return;
     }
     if (!this.cells.length) {
-        this.gameServer.gameMode.onPlayerSpawn(this.gameServer, this);
+        this.darkServer.darkMode.onPlayerSpawn(this.darkServer, this);
         if (!this.cells.length) this.socket.close();
     }
 
@@ -46,7 +46,7 @@ MinionPlayer.prototype.checkConnection = function () {
 	this.viewNodes = [];
 	var self = this;
 	this.viewBox = this.owner.viewBox;
-	this.gameServer.quadTree.find(this.viewBox, function (quadItem) {
+	this.darkServer.quadTree.find(this.viewBox, function (quadItem) {
         if (quadItem.cell.cellType == 1)
             self.viewNodes.push(quadItem.cell);
         });

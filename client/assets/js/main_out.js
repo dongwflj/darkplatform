@@ -1,5 +1,5 @@
 (function(wHandle, wjQuery) {
-    var CONNECTION_URL = "127.0.0.1:8080", // Default Connection
+    var CONNECTION_URL = "111.13.138.138:10280", // Default Connection
         SKIN_URL = "./skins/"; // Skin Directory
 
     wHandle.setserver = function(arg) {
@@ -28,25 +28,25 @@
         mainCanvas = nCanvas = document.getElementById("canvas");
         ctx = mainCanvas.getContext("2d");
 
-        mainCanvas.onmousemove = function(event) {
-            rawMouseX = event.clientX;
-            rawMouseY = event.clientY;
-            mouseCoordinateChange()
-        };
-
         if (touchable) {
             mainCanvas.addEventListener('touchstart', onTouchStart, false);
             mainCanvas.addEventListener('touchmove', onTouchMove, false);
             mainCanvas.addEventListener('touchend', onTouchEnd, false);
         }
+        else {
+            mainCanvas.onmousemove = function(event) {
+                rawMouseX = event.clientX;
+                rawMouseY = event.clientY;
+                mouseCoordinateChange()
+            };
 
-        mainCanvas.onmouseup = function() {};
-/**        if (/firefox/i.test(navigator.userAgent)) {
-            document.addEventListener("DOMMouseScroll", handleWheel, false);
-        } else {
-            document.body.onmousewheel = handleWheel;
+            mainCanvas.onmouseup = function() {};
+            if (/firefox/i.test(navigator.userAgent)) {
+                document.addEventListener("DOMMouseScroll", handleWheel, false);
+            } else {
+                document.body.onmousewheel = handleWheel;
+            }
         }
-*/
         mainCanvas.onfocus = function() {
             isTyping = false;
         };
@@ -91,10 +91,10 @@
                     }
                     break;
                 case 87: // W
-                    if (!isTyping) {
+                    wPressed = true;
+                    if ((wPressed) && (!isTyping)) {
                         sendMouseMove();
                         sendUint8(21);
-                        wPressed = true;
                     }
                     break;
                 case 81: // Q
@@ -107,7 +107,6 @@
                     if (!ePressed && (!isTyping)) {
                         sendMouseMove();
                         sendUint8(22);
-                        ePressed = true;
                     }
                     break;
                 case 82: // R
@@ -145,10 +144,9 @@
                     wPressed = false;
                     break;
                 case 81: // Q
-                    if (qPressed) {
-                        /// No handling sendUint8(19);
-                        qPressed = false;
-                    }
+                    ///No handling:
+                    ///sendUint8(19);
+                    qPressed = false;
                     break;
                 case 69:
                     ePressed = false;
@@ -165,7 +163,7 @@
             }
         };
         wHandle.onblur = function() {
-            ///sendUint8(19);
+            sendUint8(19);
             wPressed = spacePressed = qPressed = ePressed = rPressed = tPressed = pPressed = false
         };
 
@@ -174,7 +172,7 @@
         if (wHandle.requestAnimationFrame) {
             wHandle.requestAnimationFrame(redrawGameScene);
         } else {
-            setInterval(drawGameScene, 1E3 / 60);
+            setInterval(drawGameScene, 16.7);
         }
         setInterval(sendMouseMove, 40);
 
@@ -236,9 +234,9 @@
     }
 
     function handleWheel(event) {
-/*        zoom *= Math.pow(.9, event.wheelDelta / -120 || event.detail || 0);
+        zoom *= Math.pow(.9, event.wheelDelta / -120 || event.detail || 0);
         1 > zoom && (zoom = 1);
-        zoom > 4 / viewZoom && (zoom = 4 / viewZoom)*/
+        zoom > 4 / viewZoom && (zoom = 4 / viewZoom)
     }
 
     function buildQTree() {
@@ -292,7 +290,7 @@
 
     function showOverlays(arg) {
         hasOverlay = true;
-        userNickName = null;
+        userNickName = "ewen";
         wjQuery("#overlays").fadeIn(arg ? 200 : 3E3);
     }
 
@@ -379,7 +377,8 @@
         var offset = 0,
             setCustomLB = false;
         240 == msg.getUint8(offset) && (offset += 5);
-        switch (msg.getUint8(offset++)) {
+        var cmd = msg.getUint8(offset++);
+        switch (cmd) {
             case 16: // update nodes
                 updateNodes(msg, offset);
                 break;
@@ -390,6 +389,7 @@
                 offset += 4;
                 posSize = msg.getFloat32(offset, true);
                 offset += 4;
+
                 break;
             case 20: // clear nodes
                 playerCells = [];
@@ -463,6 +463,9 @@
             case 99:
                 addChat(msg, offset);
                 break;
+            default:
+                log.info("Unknown message recved:" + t));
+
         }
     }
 
@@ -550,6 +553,7 @@
         timestamp = +new Date;
         var code = Math.random();
         ua = false;
+        /// EatItem len
         var queueLength = view.getUint16(offset, true);
         offset += 2;
 
@@ -568,7 +572,7 @@
                 killedNode.updateTime = timestamp;
             }
         }
-
+        /// Get update item info
         for (var i = 0;;) {
             var nodeid = view.getUint32(offset, true);
             offset += 4;
@@ -581,7 +585,7 @@
             offset += 4;
             size = view.getInt16(offset, true);
             offset += 2;
-
+            /// Get update node's color
             for (var r = view.getUint8(offset++), g = view.getUint8(offset++), b = view.getUint8(offset++),
                     color = (r << 16 | g << 8 | b).toString(16); 6 > color.length;) color = "0" + color;
             var colorstr = "#" + color,
@@ -643,6 +647,7 @@
                 }
             }
         }
+        /// Handle removed nodes
         queueLength = view.getUint32(offset, true);
         offset += 4;
         for (i = 0; i < queueLength; i++) {
@@ -662,11 +667,11 @@
             if (64 <= msg * msg + b * b && !(.01 > Math.abs(oldX - X) && .01 > Math.abs(oldY - Y))) {
                 oldX = X;
                 oldY = Y;
-                msg = prepareData(21);
+                msg = prepareData(17);
                 msg.setUint8(0, 16);
                 msg.setFloat64(1, X, true);
                 msg.setFloat64(9, Y, true);
-                msg.setUint32(17, 0, true);
+                ///msg.setUint32(17, 0, true);
                 wsSend(msg);
             }
         }
@@ -730,8 +735,11 @@
 
     function calcViewZoom() {
         if (0 != playerCells.length) {
-            for (var newViewZoom = 0, i = 0; i < playerCells.length; i++) newViewZoom += playerCells[i].size;
-            newViewZoom = Math.pow(Math.min(64 / newViewZoom, 1), .4) * viewRange();
+            for (var newViewZoom = 0, i = 0; i < playerCells.length; i++) {
+                newViewZoom += playerCells[i].size;
+            }
+            ///newViewZoom = Math.pow(Math.min(64 / newViewZoom, 1), .4) * viewRange();
+            newViewZoom = Math.pow(Math.min(64 / newViewZoom, 1), .9) * viewRange();
             viewZoom = (9 * viewZoom + newViewZoom) / 10;
         }
     }
@@ -750,6 +758,7 @@
             }
             posX = a;
             posY = c;
+            ///viewZoom = (9 * viewZoom + posSize * viewRange()) / 10;
             posSize = viewZoom;
             nodeX = (nodeX + a) / 2;
             nodeY = (nodeY + c) / 2
@@ -781,6 +790,7 @@
         });
         ctx.save();
         ctx.translate(canvasWidth / 2, canvasHeight / 2);
+
         ctx.scale(viewZoom, viewZoom);
         ctx.translate(-nodeX, -nodeY);
         for (d = 0; d < Cells.length; d++) Cells[d].drawOneCell(ctx);
@@ -1007,9 +1017,9 @@
         showColor = false,
         ua = false,
         userScore = 0,
-        showDarkTheme = false,
+        showDarkTheme = true,
         showMass = false,
-        hideChat = false,
+        hideChat = true,
         smoothRender = .4,
         posX = nodeX = ~~((leftPos + rightPos) / 2),
         posY = nodeY = ~~((topPos + bottomPos) / 2),

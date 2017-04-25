@@ -32,7 +32,7 @@ QuadNode.prototype.insert = function (item) {
             return this.childNodes[quad].insert(item);
     }
     this.items.push(item);
-    item._quadNode = this;  // used for quick search quad node by item
+    item._quadNode = this;  // link back to parent, used for quick search quad node by item
     
     // check if rebalance needed
     if (this.childNodes.length != 0 || this.items.length < 64)
@@ -70,6 +70,7 @@ QuadNode.prototype.find = function (bound, callback) {
         if (quad != -1) {
             this.childNodes[quad].find(bound, callback);
         } else {
+            /// Can't contained by child node
             for (var i = 0; i < this.childNodes.length; i++) {
                 var node = this.childNodes[i];
                 if (!this.intersects(node.bound, bound))
@@ -86,18 +87,21 @@ QuadNode.prototype.find = function (bound, callback) {
 
 // Returns quadrant for the bound.
 // Returns -1 if bound cannot completely fit within a child node
+// B1 B0
+// B2 B3
 QuadNode.prototype.getQuad = function (bound) {
     var isTop = (bound.miny && bound.maxy) < this.bound.cy;
     if ((bound.minx && bound.maxx) < this.bound.cx) {
-        if (isTop) return 1;
-        else if (bound.miny > this.bound.cy) return 2; // isBottom
+        if (isTop) return 1; // belong to left top part
+        else if (bound.miny > this.bound.cy) return 2; // is leftBottom
     } else if (bound.minx > this.bound.cx) { // isRight
-        if (isTop) return 0;
+        if (isTop) return 0; // right top
         else if (bound.miny > this.bound.cy) return 3; // isBottom
     }
     return -1;  // cannot fit (too large size)
 };
 
+// true:not intersect, false:intersect
 QuadNode.prototype.intersects = function (a, b) {
     return b.minx >= a.maxx ||
         b.maxx <= a.minx ||

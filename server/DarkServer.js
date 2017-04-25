@@ -597,8 +597,8 @@ DarkServer.prototype.mainLoop = function() {
                     self.resolveCollision(m);
             });
             ///this.autoSplit(cell, cell.owner);
-            /// Decay player cells once per 10 second
-            if (((this.tickCounter + 3) % 250) === 0) {
+            /// Decay player cells once per 1 second
+            if (((this.tickCounter + 3) % 25) === 0) {
                 this.updateSizeDecay(cell);
             }
             // Remove external minions if necessary
@@ -643,7 +643,8 @@ DarkServer.prototype.movePlayer = function(cell, client) {
     // update remerge
     var time = this.config.playerRecombineTime,
     ///base = Math.max(time, cell._size * 0.2) * 25;
-    base = Math.max(time, cell._size * 0.05) * 25;
+    // make 100 size recombine as 15s
+    base = Math.max(time, cell._size * 0.15) * 25;
     // instant merging conditions
     if (!time || client.rec || client.mergeOverride) {
         cell._canRemerge = cell.boostDistance < 100;
@@ -775,12 +776,12 @@ DarkServer.prototype.resolveCollision = function(m) {
         /// if dist more than deltasize / 3
         return; // too far => can't eat
     }
-
+    debugger;
     // collision owned => ignore, resolve, or remerge
     if (cell.owner && cell.owner == check.owner) {
         if (cell.getAge() < 13 || check.getAge() < 13)
             return; // just splited => ignore
-    } else if (check._size < cell._size * 1.14017543 || !check.canEat(cell))
+    } else if (check._size < cell._size * 1.14 || !check.canEat(cell))
         return; // Cannot eat or cell refuses to be eaten
 
     // Consume effect

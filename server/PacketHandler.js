@@ -72,7 +72,7 @@ PacketHandler.prototype.handshake_onCompleted = function (protocol, key) {
     };
     this.protocol = protocol;
     // Send handshake response
-    this.sendPacket(new Packet.ClearAll());
+    ///this.sendPacket(new Packet.ClearAll());
     this.sendPacket(new Packet.SetBorder(this.socket.playerTracker, this.darkServer.border, this.darkServer.config.serverGamemode, "Dark" + this.darkServer.version));
     // Send welcome message
     this.darkServer.sendChatMessage(null, this.socket.playerTracker, "Dark " + this.darkServer.version);

@@ -38,14 +38,16 @@ Virus.prototype.onEaten = function (c) {
     if (cellsLeft > 9) {
         cellsLeft = 9;
     }
-    var splitMass = c._mass * 0.1;
+    var splitMass = c._mass / (cellsLeft + 1);
+    Logger.info("Hunter's mass:" + c._mass);
+    Logger.info("Cell left:" + cellsLeft);
     if (splitMass < 10) {
         splitMass = 10;
         Logger.info("Weired, split mass less than 10");
     }
-    else if (splitMass > 40) {
-        splitMass = 40;
-        Logger.info("Weired, split mass less than 10");
+    else if (splitMass > 50) {
+        splitMass = 50;
+        Logger.info("Explord mass too big, change to 50");
     }
     // Diverse explosion(s)
     ///var big = []; // amount of big splits

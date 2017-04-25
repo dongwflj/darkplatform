@@ -380,9 +380,12 @@
         var cmd = msg.getUint8(offset++);
         switch (cmd) {
             case 16: // update nodes
+                posSize = msg.getFloat32(offset, true);
+                offset += 4;
                 updateNodes(msg, offset);
                 break;
             case 17: // update position
+                log.info("Recved update pos:" + cmd);
                 posX = msg.getFloat32(offset, true);
                 offset += 4;
                 posY = msg.getFloat32(offset, true);
@@ -392,10 +395,12 @@
 
                 break;
             case 20: // clear nodes
+                log.info("Recved clear own:" + cmd);
                 playerCells = [];
                 nodesOnScreen = [];
                 break;
             case 21: // draw line
+                log.info("Careful, we recved draw line:" + cmd);
                 lineX = msg.getInt16(offset, true);
                 offset += 2;
                 lineY = msg.getInt16(offset, true);
@@ -407,6 +412,7 @@
                 }
                 break;
             case 32: // add node
+                log.info("Recved add node:" + cmd);
                 nodesOnScreen.push(msg.getUint32(offset, true));
                 offset += 4;
                 break;
@@ -443,6 +449,7 @@
                 drawLeaderBoard();
                 break;
             case 64: // set border
+                log.info("Recved set border:" + cmd);
                 leftPos = msg.getFloat64(offset, true);
                 offset += 8;
                 topPos = msg.getFloat64(offset, true);
@@ -464,7 +471,7 @@
                 addChat(msg, offset);
                 break;
             default:
-                log.info("Unknown message recved:" + t));
+                log.info("Unknown message recved:" + cmd);
 
         }
     }
@@ -732,7 +739,7 @@
         ratio = Math.max(canvasHeight / 1080, canvasWidth / 1920);
         return ratio * zoom;
     }
-
+/**
     function calcViewZoom() {
         if (0 != playerCells.length) {
             for (var newViewZoom = 0, i = 0; i < playerCells.length; i++) {
@@ -743,13 +750,13 @@
             viewZoom = (9 * viewZoom + newViewZoom) / 10;
         }
     }
-
+*/
     function drawGameScene() {
         var a, oldtime = Date.now();
         ++cb;
         timestamp = oldtime;
         if (0 < playerCells.length) {
-            calcViewZoom();
+            //calcViewZoom();
             var c = a = 0;
             for (var d = 0; d < playerCells.length; d++) {
                 playerCells[d].updatePos();
@@ -758,8 +765,8 @@
             }
             posX = a;
             posY = c;
-            ///viewZoom = (9 * viewZoom + posSize * viewRange()) / 10;
-            posSize = viewZoom;
+            viewZoom = (9 * viewZoom + posSize * viewRange()) / 10;
+            ///posSize = viewZoom;
             nodeX = (nodeX + a) / 2;
             nodeY = (nodeY + c) / 2
         } else {
@@ -1210,6 +1217,7 @@
         },
         setSize: function(a) {
             this.nSize = a;
+            /// mass
             var m = ~~(this.size * this.size * 0.01);
             if (null === this.sizeCache)
                 this.sizeCache = new UText(this.getNameSize() * 0.5, "#FFFFFF", true, "#000000");

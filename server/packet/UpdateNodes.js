@@ -1,9 +1,10 @@
-function UpdateNodes(playerTracker, addNodes, updNodes, eatNodes, delNodes) {
+function UpdateNodes(playerTracker, addNodes, updNodes, eatNodes, delNodes, scale) {
     this.playerTracker = playerTracker;
     this.addNodes = addNodes;
     this.updNodes = updNodes;
     this.eatNodes = eatNodes;
     this.delNodes = delNodes;
+    this.scale = scale;
 }
 
 module.exports = UpdateNodes;
@@ -14,6 +15,7 @@ UpdateNodes.prototype.build = function (protocol) {
     var BinaryWriter = require("./BinaryWriter");
     var writer = new BinaryWriter();
     writer.writeUInt8(0x10);    // Packet ID
+    writer.writeFloat(this.scale);
     this.writeEatItems(writer);
     
     if (protocol < 5) this.writeUpdateItems4(writer);

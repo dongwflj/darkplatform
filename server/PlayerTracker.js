@@ -40,6 +40,11 @@ function PlayerTracker(darkServer, socket) {
         maxx: 0,
         maxy: 0
     };
+    this.minx = Number.POSITIVE_INFINITY;
+    this.miny = Number.POSITIVE_INFINITY;
+    this.maxx = Number.NEGATIVE_INFINITY;
+    this.maxy = Number.NEGATIVE_INFINITY;
+
 
     // Scramble the coordinate system for anti-raga
     this.scrambleX = 0;
@@ -53,6 +58,7 @@ function PlayerTracker(darkServer, socket) {
     this.frozen = false;
     this.customspeed = 0;
     this.rec = false;
+    this.scale = 0;
 
     // Minions
     this.miQ = 0;
@@ -131,8 +137,8 @@ PlayerTracker.prototype.getScale = function() {
         this._score += this.cells[i]._mass;
     }
     if (!scale) return scale = this._score = 0; // reset
-    else scale = Math.pow(Math.min(64 / scale, 1), 0.9);
-    ///else scale = Math.pow(Math.min(64 / scale, 1), 0.4);
+    ///else scale = Math.pow(Math.min(64 / scale, 1), 0.9);
+    else scale = Math.pow(Math.min(64 / scale, 1), 0.4);
     
 /*
     var vec = new Vec2(maxx-minx, maxy-miny);
@@ -164,7 +170,7 @@ PlayerTracker.prototype.joinGame = function(name, skin) {
         if (packetHandler.protocol < 6) {
             packetHandler.sendPacket(new Packet.UpdateNodes(this, [], [], [], this.clientNodes));
         }
-        packetHandler.sendPacket(new Packet.ClearAll());
+        ///packetHandler.sendPacket(new Packet.ClearAll());
         this.clientNodes = [];
         this.scramble();
         if (this.darkServer.config.serverScrambleLevel < 2) {
@@ -310,7 +316,7 @@ PlayerTracker.prototype.sendUpdate = function() {
     this.clientNodes = this.viewNodes;
 
     // Send update packet
-    packetHandler.sendPacket(new Packet.UpdateNodes(this, addNodes, updNodes, eatNodes, delNodes));
+    packetHandler.sendPacket(new Packet.UpdateNodes(this, addNodes, updNodes, eatNodes, delNodes, this.scale));
 
     // Update leaderboard
     if (++this.tickLeaderboard > 25) {
@@ -322,39 +328,40 @@ PlayerTracker.prototype.sendUpdate = function() {
 };
 
 PlayerTracker.prototype.updateSpecView = function(len) {
-    var distScale = 0;
+    var distScale = 1;
     if (!this.spectate || len) {
+        this.minx = Number.POSITIVE_INFINITY;
+        this.miny = Number.POSITIVE_INFINITY;
+        this.maxx = Number.NEGATIVE_INFINITY;
+        this.maxy = Number.NEGATIVE_INFINITY;
         var cx = 0, cy = 0;
-        var minx = 9000;
-        var maxx = -9000;
-        var miny = 9000;
-        var maxy = -9000;
-
         for (var i = 0; i < len; i++) {
             cx += this.cells[i].position.x / len;
             cy += this.cells[i].position.y / len;
-            if (maxx < this.cells[i].position.x) {
-                maxx = this.cells[i].position.x;
+            if (this.maxx < this.cells[i].position.x) {
+                this.maxx = this.cells[i].position.x;
             }
-            else if (minx > this.cells[i].position.x) {
-                minx = this.cells[i].position.x;
+            if (this.minx > this.cells[i].position.x) {
+                this.minx = this.cells[i].position.x;
             }
-            if (maxy < this.cells[i].position.y) {
-                maxy = this.cells[i].position.y;
+            if (this.maxy < this.cells[i].position.y) {
+                this.maxy = this.cells[i].position.y;
             }
-            else if (miny > this.cells[i].position.y) {
-                miny = this.cells[i].position.y;
+            if (this.miny > this.cells[i].position.y) {
+                this.miny = this.cells[i].position.y;
             }
         }
         /// Ewen add for dist scale
         if (len > 1) {
-            var vecDist = new Vec2(maxx-minx, maxy-miny); 
-            var tmp = 1080 - vecDist.sqDist();
+            var vecDist = new Vec2(this.maxx-this.minx, this.maxy-this.miny); 
+            var dist = vecDist.sqDist();
+            var tmp = 8740 - dist*3;
             if (tmp < 0) {
                 tmp = 0;
             }
-            distScale = tmp/1080. + 0.13;
-            ///Logger.info("dist scale:" + distScale);
+            distScale = tmp/8740. + 0.14;
+            Logger.info("dist :" + dist);
+            Logger.info("minx:" + this.minx + " maxx:" + this.maxx + " miny:" + this.miny + " maxy:" + this.maxy);
         }
         this.centerPos = new Vec2(cx, cy);
     } else {
@@ -392,16 +399,14 @@ PlayerTracker.prototype.updateSpecView = function(len) {
             this, this.centerPos.x, this.centerPos.y, scale
         ));
     }
-    var scale = Math.max(this.getScale(), this.darkServer.config.serverMinScale);
-    ///Logger.info("current scale:" + scale);
+    this.scale = Math.max(this.getScale(), this.darkServer.config.serverMinScale);
+    ///Logger.info("current scale:" + this.scale);
+    ///Logger.info("current dist scale:" + distScale);
     if (distScale != 0) {
-        scale = Math.min(scale, distScale);
-        ///Logger.info("After change scale:" + scale);
+        this.scale = Math.min(this.scale, distScale);
     }
     var halfWidth = (this.darkServer.config.serverViewBaseX) / scale / 2;
     var halfHeight = (this.darkServer.config.serverViewBaseY) / scale / 2;
-    ////Logger.info("half wide:" + halfWidth);
-    ///Logger.info("half high:" + halfHeight);
     this.viewBox = {
         minx: this.centerPos.x - halfWidth,
         miny: this.centerPos.y - halfHeight,

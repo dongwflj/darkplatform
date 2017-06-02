@@ -36,6 +36,7 @@ PacketHandler.prototype.handleMessage = function (message) {
 PacketHandler.prototype.handshake_onProtocol = function (message) {
     if (message.length !== 5) return;
     this.handshakeProtocol = message[1] | (message[2] << 8) | (message[3] << 16) | (message[4] << 24);
+    Logger.info("On protocol:" + this.handshakeProtocol);
     if (this.handshakeProtocol < 1 || this.handshakeProtocol > 11) {
         this.socket.close(1002, "Not supported protocol");
         return;
@@ -56,6 +57,7 @@ PacketHandler.prototype.handshake_onKey = function (message) {
 };
 
 PacketHandler.prototype.handshake_onCompleted = function (protocol, key) {
+    Logger.info("On complete");
     this.handler = {
         0: this.message_onJoin.bind(this),
         1: this.message_onSpectate.bind(this),
@@ -101,6 +103,7 @@ PacketHandler.prototype.message_onJoin = function (message) {
         text = reader.readStringZeroUnicode();
     else
         text = reader.readStringZeroUtf8();
+    Logger.info("join:"+ text);
     this.setNickname(text);
 };
 
@@ -286,6 +289,7 @@ PacketHandler.prototype.setNickname = function (text) {
         var skinName = null,
             userName = text,
             n = -1;
+        /// <r|skinname>
         if (text[0] == '<' && (n = text.indexOf('>', 1)) >= 1) {
             var inner = text.slice(1, n);
             if (n > 1)
@@ -303,7 +307,7 @@ PacketHandler.prototype.setNickname = function (text) {
     
     if (this.darkServer.checkBadWord(name)) {
         skin = null;
-        name = "Hi there!";
+        name = "Player";
     }
     
     this.socket.playerTracker.joinGame(name, skin);

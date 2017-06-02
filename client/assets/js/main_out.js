@@ -181,6 +181,7 @@
     }
 
     function onTouchStart(e) {
+        console.log("touch len:"+e.changedTouches.length);
         for (var i = 0; i < e.changedTouches.length; i++) {
             var touch = e.changedTouches[i];
             if ((leftTouchID < 0) && (touch.clientX < canvasWidth / 2)) {
@@ -756,7 +757,7 @@
         ++cb;
         timestamp = oldtime;
         if (0 < playerCells.length) {
-            //calcViewZoom();
+            calcViewZoom();
             var c = a = 0;
             for (var d = 0; d < playerCells.length; d++) {
                 playerCells[d].updatePos();
@@ -766,7 +767,7 @@
             posX = a;
             posY = c;
             viewZoom = (9 * viewZoom + posSize * viewRange()) / 10;
-            ///posSize = viewZoom;
+            posSize = viewZoom;
             nodeX = (nodeX + a) / 2;
             nodeY = (nodeY + c) / 2
         } else {

@@ -225,8 +225,9 @@ PacketHandler.prototype.processMouse = function () {
         // early protocol 5
         client.mouse.x = reader.readInt16() - client.scrambleX;
         client.mouse.y = reader.readInt16() - client.scrambleY;
-    } else if (this.mouseData.length === 21) {
-        // protocol 4
+    ///} else if (this.mouseData.length === 21) {
+    } else if (this.mouseData.length === 17) {
+        // protocol 5
         var x = reader.readDouble() - client.scrambleX;
         var y = reader.readDouble() - client.scrambleY;
         if (!isNaN(x) && !isNaN(y)) {

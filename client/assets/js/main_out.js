@@ -381,8 +381,8 @@
         var cmd = msg.getUint8(offset++);
         switch (cmd) {
             case 16: // update nodes
-                posSize = msg.getFloat32(offset, true);
-                offset += 4;
+                ///posSize = msg.getFloat32(offset, true);
+                ///offset += 4;
                 updateNodes(msg, offset);
                 break;
             case 17: // update position
@@ -740,7 +740,7 @@
         ratio = Math.max(canvasHeight / 1080, canvasWidth / 1920);
         return ratio * zoom;
     }
-/**
+
     function calcViewZoom() {
         if (0 != playerCells.length) {
             for (var newViewZoom = 0, i = 0; i < playerCells.length; i++) {
@@ -751,7 +751,7 @@
             viewZoom = (9 * viewZoom + newViewZoom) / 10;
         }
     }
-*/
+
     function drawGameScene() {
         var a, oldtime = Date.now();
         ++cb;

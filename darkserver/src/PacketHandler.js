@@ -1,5 +1,6 @@
 var Packet = require('./packet');
 var BinaryReader = require('./packet/BinaryReader');
+var Logger = require('./modules/Logger');
 
 function PacketHandler(gameServer, socket) {
     this.gameServer = gameServer;
@@ -111,7 +112,7 @@ PacketHandler.prototype.message_onSpectate = function (message) {
 };
 
 PacketHandler.prototype.message_onMouse = function (message) {
-    if (message.length !== 13 && message.length !== 9 && message.length !== 21) {
+    if (message.length !== 13 && message.length !== 9 && message.length !== 17) {
         return;
     }
     this.mouseData = Buffer.concat([message]);

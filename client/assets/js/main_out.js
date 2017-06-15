@@ -28,25 +28,25 @@
         mainCanvas = nCanvas = document.getElementById("canvas");
         ctx = mainCanvas.getContext("2d");
 
+        mainCanvas.onmousemove = function(event) {
+            rawMouseX = event.clientX;
+            rawMouseY = event.clientY;
+            mouseCoordinateChange()
+        };
+
         if (touchable) {
             mainCanvas.addEventListener('touchstart', onTouchStart, false);
             mainCanvas.addEventListener('touchmove', onTouchMove, false);
             mainCanvas.addEventListener('touchend', onTouchEnd, false);
         }
-        else {
-            mainCanvas.onmousemove = function(event) {
-                rawMouseX = event.clientX;
-                rawMouseY = event.clientY;
-                mouseCoordinateChange()
-            };
 
-            mainCanvas.onmouseup = function() {};
-            if (/firefox/i.test(navigator.userAgent)) {
-                document.addEventListener("DOMMouseScroll", handleWheel, false);
-            } else {
-                document.body.onmousewheel = handleWheel;
-            }
+        mainCanvas.onmouseup = function() {};
+        if (/firefox/i.test(navigator.userAgent)) {
+            document.addEventListener("DOMMouseScroll", handleWheel, false);
+        } else {
+            document.body.onmousewheel = handleWheel;
         }
+
         mainCanvas.onfocus = function() {
             isTyping = false;
         };
@@ -91,10 +91,10 @@
                     }
                     break;
                 case 87: // W
-                    wPressed = true;
-                    if ((wPressed) && (!isTyping)) {
+                    if ((!wPressed) && (!isTyping)) {
                         sendMouseMove();
                         sendUint8(21);
+                        wPressed = true;
                     }
                     break;
                 case 81: // Q
@@ -144,9 +144,10 @@
                     wPressed = false;
                     break;
                 case 81: // Q
-                    ///No handling:
-                    ///sendUint8(19);
-                    qPressed = false;
+                    if (qPressed) {
+                        sendUint8(19);
+                        qPressed = false;
+                    }
                     break;
                 case 69:
                     ePressed = false;
@@ -172,7 +173,7 @@
         if (wHandle.requestAnimationFrame) {
             wHandle.requestAnimationFrame(redrawGameScene);
         } else {
-            setInterval(drawGameScene, 16.7);
+            setInterval(drawGameScene, 1E3 / 60);
         }
         setInterval(sendMouseMove, 40);
 
@@ -181,7 +182,6 @@
     }
 
     function onTouchStart(e) {
-        console.log("touch len:"+e.changedTouches.length);
         for (var i = 0; i < e.changedTouches.length; i++) {
             var touch = e.changedTouches[i];
             if ((leftTouchID < 0) && (touch.clientX < canvasWidth / 2)) {
@@ -291,7 +291,7 @@
 
     function showOverlays(arg) {
         hasOverlay = true;
-        userNickName = "ewen";
+        userNickName = null;
         wjQuery("#overlays").fadeIn(arg ? 200 : 3E3);
     }
 
@@ -378,30 +378,23 @@
         var offset = 0,
             setCustomLB = false;
         240 == msg.getUint8(offset) && (offset += 5);
-        var cmd = msg.getUint8(offset++);
-        switch (cmd) {
+        switch (msg.getUint8(offset++)) {
             case 16: // update nodes
-                ///posSize = msg.getFloat32(offset, true);
-                ///offset += 4;
                 updateNodes(msg, offset);
                 break;
             case 17: // update position
-                log.info("Recved update pos:" + cmd);
                 posX = msg.getFloat32(offset, true);
                 offset += 4;
                 posY = msg.getFloat32(offset, true);
                 offset += 4;
                 posSize = msg.getFloat32(offset, true);
                 offset += 4;
-
                 break;
             case 20: // clear nodes
-                log.info("Recved clear own:" + cmd);
                 playerCells = [];
                 nodesOnScreen = [];
                 break;
             case 21: // draw line
-                log.info("Careful, we recved draw line:" + cmd);
                 lineX = msg.getInt16(offset, true);
                 offset += 2;
                 lineY = msg.getInt16(offset, true);
@@ -413,7 +406,6 @@
                 }
                 break;
             case 32: // add node
-                log.info("Recved add node:" + cmd);
                 nodesOnScreen.push(msg.getUint32(offset, true));
                 offset += 4;
                 break;
@@ -450,7 +442,6 @@
                 drawLeaderBoard();
                 break;
             case 64: // set border
-                log.info("Recved set border:" + cmd);
                 leftPos = msg.getFloat64(offset, true);
                 offset += 8;
                 topPos = msg.getFloat64(offset, true);
@@ -471,9 +462,6 @@
             case 99:
                 addChat(msg, offset);
                 break;
-            default:
-                log.info("Unknown message recved:" + cmd);
-
         }
     }
 
@@ -561,7 +549,6 @@
         timestamp = +new Date;
         var code = Math.random();
         ua = false;
-        /// EatItem len
         var queueLength = view.getUint16(offset, true);
         offset += 2;
 
@@ -580,7 +567,7 @@
                 killedNode.updateTime = timestamp;
             }
         }
-        /// Get update item info
+
         for (var i = 0;;) {
             var nodeid = view.getUint32(offset, true);
             offset += 4;
@@ -593,7 +580,7 @@
             offset += 4;
             size = view.getInt16(offset, true);
             offset += 2;
-            /// Get update node's color
+
             for (var r = view.getUint8(offset++), g = view.getUint8(offset++), b = view.getUint8(offset++),
                     color = (r << 16 | g << 8 | b).toString(16); 6 > color.length;) color = "0" + color;
             var colorstr = "#" + color,
@@ -655,7 +642,6 @@
                 }
             }
         }
-        /// Handle removed nodes
         queueLength = view.getUint32(offset, true);
         offset += 4;
         for (i = 0; i < queueLength; i++) {
@@ -675,6 +661,7 @@
             if (64 <= msg * msg + b * b && !(.01 > Math.abs(oldX - X) && .01 > Math.abs(oldY - Y))) {
                 oldX = X;
                 oldY = Y;
+                ///msg = prepareData(21);
                 msg = prepareData(17);
                 msg.setUint8(0, 16);
                 msg.setFloat64(1, X, true);
@@ -743,11 +730,8 @@
 
     function calcViewZoom() {
         if (0 != playerCells.length) {
-            for (var newViewZoom = 0, i = 0; i < playerCells.length; i++) {
-                newViewZoom += playerCells[i].size;
-            }
-            ///newViewZoom = Math.pow(Math.min(64 / newViewZoom, 1), .4) * viewRange();
-            newViewZoom = Math.pow(Math.min(64 / newViewZoom, 1), .9) * viewRange();
+            for (var newViewZoom = 0, i = 0; i < playerCells.length; i++) newViewZoom += playerCells[i].size;
+            newViewZoom = Math.pow(Math.min(64 / newViewZoom, 1), .4) * viewRange();
             viewZoom = (9 * viewZoom + newViewZoom) / 10;
         }
     }
@@ -766,7 +750,6 @@
             }
             posX = a;
             posY = c;
-            viewZoom = (9 * viewZoom + posSize * viewRange()) / 10;
             posSize = viewZoom;
             nodeX = (nodeX + a) / 2;
             nodeY = (nodeY + c) / 2
@@ -798,7 +781,6 @@
         });
         ctx.save();
         ctx.translate(canvasWidth / 2, canvasHeight / 2);
-
         ctx.scale(viewZoom, viewZoom);
         ctx.translate(-nodeX, -nodeY);
         for (d = 0; d < Cells.length; d++) Cells[d].drawOneCell(ctx);
@@ -1025,9 +1007,9 @@
         showColor = false,
         ua = false,
         userScore = 0,
-        showDarkTheme = true,
+        showDarkTheme = false,
         showMass = false,
-        hideChat = true,
+        hideChat = false,
         smoothRender = .4,
         posX = nodeX = ~~((leftPos + rightPos) / 2),
         posY = nodeY = ~~((topPos + bottomPos) / 2),
@@ -1218,7 +1200,6 @@
         },
         setSize: function(a) {
             this.nSize = a;
-            /// mass
             var m = ~~(this.size * this.size * 0.01);
             if (null === this.sizeCache)
                 this.sizeCache = new UText(this.getNameSize() * 0.5, "#FFFFFF", true, "#000000");

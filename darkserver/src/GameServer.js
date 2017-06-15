@@ -13,7 +13,7 @@ function GameServer() {
     
     // Startup
     this.run = true;
-    this.version = '1.6.1';
+    this.version = '1.0.0';
     this.httpServer = null;
     this.lastNodeId = 1;
     this.lastPlayerId = 1;
@@ -192,7 +192,7 @@ GameServer.prototype.onHttpServerOpen = function() {
     
     // Done
     Logger.info("Listening on port " + this.config.serverPort);
-    Logger.info("Current game mode is " + this.gameMode.name);
+    Logger.info("Current mode is " + this.gameMode.name);
     
     // Player bots (Experimental)
     if (this.config.serverBots) {

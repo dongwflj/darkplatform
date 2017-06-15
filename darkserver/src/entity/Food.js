@@ -2,7 +2,7 @@ var Cell = require('./Cell');
 
 function Food() {
     Cell.apply(this, Array.prototype.slice.call(arguments));
-    
+    this.isAgitated = true;    
     this.cellType = 1;
 }
 

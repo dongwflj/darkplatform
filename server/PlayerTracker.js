@@ -92,6 +92,7 @@ PlayerTracker.prototype.scramble = function() {
         this.scrambleX = 0;
         this.scrambleY = 0;
     } else {
+        /// ???
         this.scrambleId = (Math.random() * 0xFFFFFFFF) >>> 0;
         // avoid mouse packet limitations
         var maxx = Math.max(0, 31767 - this.darkServer.border.width);
@@ -103,6 +104,7 @@ PlayerTracker.prototype.scramble = function() {
         this.scrambleX = x;
         this.scrambleY = y;
     }
+    /// ???
     this.borderCounter = 0;
 };
 
@@ -352,7 +354,7 @@ PlayerTracker.prototype.updateSpecView = function(len) {
             }
         }
         /// Ewen add for dist scale
-        if (len > 1) {
+        /*if (len > 1) {
             var vecDist = new Vec2(this.maxx-this.minx, this.maxy-this.miny); 
             var dist = vecDist.sqDist();
             var tmp = 8740 - dist*3;
@@ -360,9 +362,9 @@ PlayerTracker.prototype.updateSpecView = function(len) {
                 tmp = 0;
             }
             distScale = tmp/8740. + 0.14;
-            Logger.info("dist :" + dist);
-            Logger.info("minx:" + this.minx + " maxx:" + this.maxx + " miny:" + this.miny + " maxy:" + this.maxy);
-        }
+            ///Logger.info("dist :" + dist);
+            ///Logger.info("minx:" + this.minx + " maxx:" + this.maxx + " miny:" + this.miny + " maxy:" + this.maxy);
+        }*/
         this.centerPos = new Vec2(cx, cy);
     } else {
         if (this.freeRoam || this.getSpecTarget() == null) {
@@ -402,9 +404,9 @@ PlayerTracker.prototype.updateSpecView = function(len) {
     this.scale = Math.max(this.getScale(), this.darkServer.config.serverMinScale);
     ///Logger.info("current scale:" + this.scale);
     ///Logger.info("current dist scale:" + distScale);
-    if (distScale != 0) {
+    /*if (distScale != 0) {
         this.scale = Math.min(this.scale, distScale);
-    }
+    }*/
     var halfWidth = (this.darkServer.config.serverViewBaseX) / scale / 2;
     var halfHeight = (this.darkServer.config.serverViewBaseY) / scale / 2;
     this.viewBox = {

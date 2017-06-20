@@ -29,7 +29,7 @@ function DarkServer() {
     this.nodesVirus = [];       // Virus nodes
     this.nodesFood = [];        // Food nodes
     this.nodesEjected = [];     // Ejected mass nodes
-    this.nodesPlayer = [];
+    this.nodesPlayer = [];      // Player nodes
     
     this.movingNodes = [];      // For move engine
     this.leaderboard = [];      // For leaderboard
@@ -79,7 +79,6 @@ function DarkServer() {
         serverName: 'Dark #1',                  // Server name
         serverWelcome1: 'Welcome to Dark!',     // First server welcome message
         serverWelcome2: '',         // Second server welcome message (optional, for info, etc)
-        clientBind: '',             // Only allow connections to the server from specified client (eg: http://agar.io - http://mywebsite.com - http://more.com) [Use ' - ' to seperate different websites]
         
         /** ANTI-BOT **/
         serverIpLimit: 4,           // Controls the maximum number of connections from the same IP (0 for no limit)
@@ -173,10 +172,6 @@ DarkServer.prototype.start = function() {
     // Gamemode configurations
     this.darkMode.onServerInit(this);
     
-    // Client Binding
-    var bind = this.config.clientBind + "";
-    this.clientBind = bind.split(' - ');
-    
     // Start the server
     this.httpServer = http.createServer();
     var wsOptions = {
@@ -199,11 +194,13 @@ DarkServer.prototype.start = function() {
 
 DarkServer.prototype.onHttpServerOpen = function() {
     // Start Main Loop
+
+    this.timeStamp = Date.now();
     setTimeout(this.timerLoopBind, 1);
     
     // Done
     Logger.info("Listening on port " + this.config.serverPort);
-    Logger.info("Current game mode is " + this.darkMode.name);
+    Logger.info("Current mode is " + this.darkMode.name);
     
     // Player bots (Experimental)
     if (this.config.serverBots) {
@@ -277,15 +274,11 @@ DarkServer.prototype.onClientSocketOpen = function(ws) {
             return;
         }
     }
-    if (this.config.clientBind.length && this.clientBind.indexOf(ws.upgradeReq.headers.origin) < 0) {
-        ws.close(1000, "Client not allowed");
-        return;
-    }
     ws.isConnected = true;
     ws.remoteAddress = ws._socket.remoteAddress;
     ws.remotePort = ws._socket.remotePort;
     ws.lastAliveTime = Date.now();
-    Logger.write("CONNECTED " + ws.remoteAddress + ":" + ws.remotePort + ", origin: \"" + ws.upgradeReq.headers.origin + "\"");
+    Logger.info("CONNECTED " + ws.remoteAddress + ":" + ws.remotePort + ", origin: \"" + ws.upgradeReq.headers.origin + "\"");
     
     var PlayerCommand = require('./modules/PlayerCommand');
     ws.playerTracker = new PlayerTracker(this, ws);
@@ -317,7 +310,7 @@ DarkServer.prototype.onClientSocketOpen = function(ws) {
         ws.packetHandler.sendPacket = function(data) { };
         ws.closeReason = { reason: ws._closeCode, message: ws._closeMessage };
         ws.closeTime = Date.now();
-        Logger.write("DISCONNECTED " + ws.remoteAddress + ":" + ws.remotePort + ", code: " + ws._closeCode +
+        Logger.info("DISCONNECTED " + ws.remoteAddress + ":" + ws.remotePort + ", code: " + ws._closeCode +
         ", reason: \"" + ws._closeMessage + "\", name: \"" + ws.playerTracker._name + "\"");
     };
     ws.on('message', onMessage);
@@ -334,7 +327,8 @@ DarkServer.prototype.checkMinion = function(ws) {
     // Check headers (maybe have a config for this?)
     if (!ws.upgradeReq.headers['user-agent'] || !ws.upgradeReq.headers['cache-control'] ||
         ws.upgradeReq.headers['user-agent'].length < 50) {
-        ws.playerTracker.isMinion = true;
+        ///ws.playerTracker.isMinion = true;
+        Logger.info("ws is minion:" + ws);
     }
     // External minion detection
     if (this.config.serverMinionThreshold) {
@@ -532,6 +526,7 @@ DarkServer.prototype.checkBadWord = function(value) {
 };
 
 DarkServer.prototype.sendChatMessage = function(from, to, message) {
+    Logger.info("Send chat:" + message);
     for (var i = 0, len = this.clients.length; i < len; i++) {
         if (!this.clients[i]) continue;
         if (!to || to == this.clients[i].playerTracker)
@@ -543,12 +538,15 @@ DarkServer.prototype.timerLoop = function() {
     var timeStep = 40; // vanilla: 40
     var ts = Date.now();
     var dt = ts - this.timeStamp;
-    ///if (dt < timeStep - 5) {
-    if (dt < 35) {
+    if (dt < timeStep - 5) {
+    ///if (dt < 35) {
         setTimeout(this.timerLoopBind, 35 - dt);
         return;
     }
-    if (dt > 120) this.timeStamp = ts - timeStep;
+    if (dt > 120) {
+        Logger.warn("timer dt > 120 ms:" + dt);
+        this.timeStamp = ts - timeStep;
+    }
     // update average, calculate next
     this.updateTimeAvg += 0.5 * (this.updateTime - this.updateTimeAvg);
     this.timeStamp += timeStep;
@@ -626,6 +624,7 @@ DarkServer.prototype.mainLoop = function() {
 
     // update-update time
     var tEnd = process.hrtime(tStart);
+    /// ms
     this.updateTime = tEnd[0] * 1e3 + tEnd[1] / 1e6;
 };
 
@@ -873,6 +872,7 @@ DarkServer.prototype.spawnPlayer = function(player, pos) {
     }
     // Spawn player safely (do not check minions)
     ///if (this.willCollide(size) && !player.isMi)
+    /// TODO: pos has been generated before call this func
     pos = this.randomPos(); // Not safe => choose new position
     this.addNode(new Entity.PlayerCell(this, player, pos, size));
 

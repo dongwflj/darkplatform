@@ -235,6 +235,7 @@ PacketHandler.prototype.processMouse = function () {
             client.mouse.x = x;
             client.mouse.y = y;
         }
+        ///Logger.info("PacketHandler client mouse x:" + client.mouse.x + " y:" + client.mouse.y);
     }
     this.mouseData = null;
 };

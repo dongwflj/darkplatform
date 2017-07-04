@@ -618,10 +618,26 @@ GameServer.prototype.movePlayer = function(cell, client) {
         return; // Do not move
 
     // get movement from vector
-    var d = client.mouse.clone().sub(cell.position);
-    var move = cell.getSpeed(d.sqDist()); // movement speed
-    if (!move) return; // avoid jittering
-    cell.position.add(d, move);
+    //var d = client.mouse.clone().sub(cell.position);
+    // Change to let client move always
+    // mouse is two points' dist
+    var vecMouseMove = client.mouse.clone();
+    var nMouseDist = vecMouseMove.sqDist();
+    var speed = null;
+    if (nMouseDist < 0.5) {
+        //Logger.info("client center:" + client.centerPos.x + " y:" + client.centerPos.y);
+        //Logger.info("cell position:" + cell.position.x + " y:" + cell.position.y);
+        var vecCenterPos = client.centerPos.clone();
+        vecMouseMove = vecCenterPos.sub(cell.position);
+        speed = cell.getSpeed(vecMouseMove.sqDist())/10;
+        //Logger.info("client move speed:" + speed);
+    }
+    else {
+        speed = cell.getSpeed(vecMouseMove.sqDist()); // movement speed
+    }
+    //Logger.error("Speed: " + move);
+    if (!speed) return; // avoid jittering
+    cell.position.add(vecMouseMove, speed);
 
     // update remerge
     var time = this.config.playerRecombineTime,
@@ -913,8 +929,14 @@ GameServer.prototype.ejectMass = function(client) {
         if (cell._size < this.config.playerMinEjectSize)
             continue; // Too small to eject
         
-        var d = client.mouse.clone().sub(cell.position);
+        ///var d = client.mouse.clone().sub(cell.position);
+        var d = client.mouse.clone();
         var sq = d.sqDist();
+        if (sq < 0.1) {
+            var vecCenterPos = client.centerPos.clone();
+            d = vecCenterPos.sub(cell.position);
+            sq = d.sqDist(); 
+        }
         d.x = sq > 1 ? d.x / sq : 1;
         d.y = sq > 1 ? d.y / sq : 0;
         

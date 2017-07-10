@@ -21,9 +21,8 @@ process.on('uncaughtException', function (err) {
     process.exit(1);
 });
 
-// Run Ogar
 var gameServer = new GameServer();
-Logger.info("\u001B[1m\u001B[32mMultiOgar-Edited " + gameServer.version + "\u001B[37m - An open source multi-protocol ogar server\u001B[0m");
+Logger.info("Dark Server " + gameServer.version);
 
 // Handle arguments
 process.argv.forEach(function (item) {

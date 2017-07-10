@@ -1,6 +1,7 @@
 var Packet = require('./packet');
 var Vec2 = require('./modules/Vec2');
 var BinaryWriter = require("./packet/BinaryWriter");
+var Logger = require('./modules/Logger');
 
 function PlayerTracker(gameServer, socket) {
     this.gameServer = gameServer;
@@ -309,8 +310,8 @@ PlayerTracker.prototype.updateSpecView = function(len) {
         for (var i = 0; i < len; i++) {
             cx += this.cells[i].position.x / len;
             cy += this.cells[i].position.y / len;
-            this.centerPos = new Vec2(cx, cy);
         }
+        this.centerPos = new Vec2(cx, cy);
     } else {
         if (this.freeRoam || this.getSpecTarget() == null) {
             // free roam

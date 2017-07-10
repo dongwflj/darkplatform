@@ -24,7 +24,9 @@ public:
 	~GameLayer();
 
 	virtual bool init();
-
+    void destroy(Cell* cell);
+    void SpitUpdate(float dt);
+    
     virtual void onOpen();
     virtual void onMessage(char* bytes);
     virtual void onClose();
@@ -33,8 +35,14 @@ public:
 	CREATE_FUNC(GameLayer);
 	
     virtual void update(float dt);
-    void onMenuSpit(Ref * pSender, CheckBox::EventType type);
+    void onMenuSpit(Ref * pSender, Widget::TouchEventType type);
     void onMenuDivide(Ref * pSender, CheckBox::EventType type);
+    
+    bool onTouchBegan(Touch * touch, Event * event);
+    void onTouchMoved(Touch * touch, Event * event);
+    void onTouchEnded(Touch * touch, Event * event);
+    void onTouchCancelled(Touch * touch, Event * event);
+    
 private:
     string getString(char* buffer);
     void updateNode(char* bytes);
@@ -57,6 +65,19 @@ private:
     Map<uint32_t, Cell*> _nodes;
     
     Node* _map;
+    Size _visibleSize;
+    float _halfVisibleWidth;
+    float _halfVisibleHeight;
+    
+    Vec2 _leftTouchStartPos;
+    Vec2 _leftVector;
+    
+    double _viewCenterX;
+    double _viewCenterY;
+    
+    Label * _networkStatusLabel;
+    DrawNode* _drawNode;
+    float _viewScale;
 };
 
 #endif

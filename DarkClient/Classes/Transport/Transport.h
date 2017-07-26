@@ -9,6 +9,13 @@ USING_NS_CC;
 using namespace cocos2d::network;
 
 /*与服务器收发的网络通信管理类，继承了WebSocket接口，消息格式为Json字符串*/
+enum CONNECT_STATUS
+{
+    INIT,
+    CONNECTTING,
+    CONNECTED,
+    DISCONNECTED
+};
 
 class Transport : public Ref, public WebSocket::Delegate {
 public:
@@ -19,6 +26,7 @@ public:
     bool open();
     bool sendLogin();
     bool sendJoin(const std::string& name);
+    CONNECT_STATUS getStatus();
     /**
      * 17 space
      * 18 Q
@@ -46,6 +54,7 @@ private:
 	static Transport * s_Transport;
 	WebSocket * _socket;
     TransportObserver* _observer;
+    CONNECT_STATUS _status;
 };
 
 #endif

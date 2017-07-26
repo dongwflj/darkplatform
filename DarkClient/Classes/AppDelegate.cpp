@@ -1,5 +1,5 @@
 #include "AppDelegate.h"
-#include "Scene/MainScene/MainScene.h"
+#include "Scene/SceneManager.h"
 #include "Transport/Transport.h"
 #include "CommonDefine.h"
 
@@ -12,12 +12,14 @@ static cocos2d::Size largeResolutionSize = cocos2d::Size(2048, 1536);
 
 AppDelegate::AppDelegate()
 {
+    CC_SAFE_RETAIN(SceneManager::getInstance());
     CC_SAFE_RETAIN(Transport::getInstance());
 }
 
 AppDelegate::~AppDelegate() 
 {
     CC_SAFE_RELEASE(Transport::getInstance());
+    CC_SAFE_RELEASE(SceneManager::getInstance());
 }
 
 // if you want a different context, modify the value of glContextAttrs
@@ -79,11 +81,7 @@ bool AppDelegate::applicationDidFinishLaunching() {
     register_all_packages();
 
     // create a scene. it's an autorelease object
-    auto scene = MainLayer::createScene();
-
-    // run
-    director->runWithScene(scene);
-
+    SceneManager::getInstance()->changeScene(SceneManager::en_StartupScene);
     return true;
 }
 

@@ -3,19 +3,37 @@
 
 #include "cocos2d.h"
 #include "ui/CocosGUI.h"
+#include <libpomelo2/include/pomelo.h>
+#include <libpomelo2/include/pomelo_trans.h>
+#include "../../Transport/TransportObserver.h"
 
 USING_NS_CC;
 using namespace ui;
 
-class MainLayer : public cocos2d::Layer
+class MainScene : public cocos2d::Layer, public TransportObserver
 {
 public:
-    static cocos2d::Scene* createScene();
-
+    static Scene* createScene();
     virtual bool init();
-    
-    // implement the "static create()" method manually
-    CREATE_FUNC(MainLayer);
+    CREATE_FUNC(MainScene);
+
+    virtual void onExit();
+    void menuGameCallback(Ref * pSender);
+    void menuChatCallback(Ref * pSender);
+    void gameStartEvent(EventCustom * event);
+
+    virtual void onOpen();
+    virtual void onMessage(char* bytes);
+    virtual void onClose();
+    virtual void onError();
+private:
+    MenuItemImage * _gameItem;
+    MenuItemImage * _chatItem;
+    Layer * _menuLayer;
+    Layer * _chatLayer;
+    bool _gameFlag;
+    bool _chatFlag;
+    bool _gameStart;
 };
 
 #endif // __MAIN_SCENE_H__

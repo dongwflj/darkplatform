@@ -28,7 +28,8 @@ Transport * Transport::getInstance()
 
 bool Transport::init()
 {
-	return open();
+    _status = INIT;
+    return true;
 }
 
 bool Transport::setObserver(TransportObserver* observer) {
@@ -41,18 +42,24 @@ bool Transport::open() {
         CC_SAFE_DELETE(_socket);
     }
     _socket = new WebSocket();
-    
+    _status = CONNECTTING;
     if (!_socket->init(*this, "111.13.138.138:10280"))  //ip:端口
     {
+        log("Connect to server failed");
         CC_SAFE_DELETE(_socket);
         return false;
     }
     return true;
 }
 
+CONNECT_STATUS Transport::getStatus() {
+    return _status;
+}
+
 void Transport::onOpen(WebSocket * ws)
 {
 	log("WebSocket (%p)opened", ws);
+    _status = CONNECTED;
     if (_observer != NULL) {
         _observer->onOpen();
     }

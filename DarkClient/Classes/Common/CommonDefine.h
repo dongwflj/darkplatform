@@ -19,7 +19,7 @@
 #define START_SIZE 31.6227
 #define PRICK_SIZE 100
 // pic radius 58.5, so 31.6227/58.5 is the pic scale, factor=31.6227/58.5/31.6227 = 0.01707= 1/58.5
-//#define SCALE_FACOTR 0.01707634
+#define SCALE_FACTOR 2.4
 //// 1/16
 //#define FOOD_SCALE_FACOTR 0.0625
 //// 1/128
